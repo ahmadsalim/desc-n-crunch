@@ -1,0 +1,4 @@
+package descncrunch
+
+sourcedir = src
+pkgs = pruviloj
