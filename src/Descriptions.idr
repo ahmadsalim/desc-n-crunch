@@ -1,4 +1,13 @@
 module Descriptions
+
+import Language.Reflection
+import Language.Reflection.Errors
+import Language.Reflection.Utils
+
+import Pruviloj.Core
+import Pruviloj.Internals
+
+%default total
 %auto_implicits off
 
 data Desc : (Ix: Type) -> Type where
@@ -35,6 +44,60 @@ data Data : {Ix: Type} -> Desc Ix -> Ix -> Type where
 TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
 TaggedData d = Data (Untag d)
 
+Constraints : {Ix: _} -> (Interface: Type -> Type) -> (d: Desc Ix) -> Type
+Constraints Interface (Ret ix) = Unit
+Constraints Interface (Arg A kdesc) = (Interface A, (a: A) -> Constraints Interface (kdesc a))
+Constraints Interface (Rec ix kdesc) = Constraints Interface kdesc
+
+partial
+resolveTCPlus : Elab Unit
+resolveTCPlus = do case !goalType of
+                     `(Unit : Type) =>
+                       do fill `(() : Unit)
+                          solve
+                     `(Pair ~a ~b : Type) =>
+                       do aH <- gensym "a"
+                          bH <- gensym "b"
+                          claim aH a
+                          claim bH b
+                          fill `(MkPair {A=~a} {B=~b} ~(Var aH) ~(Var bH)); solve
+                          focus aH; resolveTCPlus
+                          focus bH; resolveTCPlus
+                     `(~a -> ~b) =>
+                       do bH <- gensym "bH"
+                          aH <- gensym "aH"
+                          claim bH b
+                          fill (RBind aH (Lam a) (Var bH)); solve
+                          focus bH; resolveTCPlus
+                     `(~iface : Type) =>
+                         let (ifacef, args) = unApply iface
+                         in case ifacef of
+                             (Var ifacenm) => resolveTC ifacenm
+
+paranthesize : String -> String
+paranthesize str = if length (words str) <= 1 then str else "(" ++ str ++ ")"
+
+mutual
+  gshowd : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: Constraints Show (Untag dr))
+    -> (d: Desc Ix) -> (constraints: Constraints Show d)
+    -> {ix: Ix} -> (synth: Synthesize d (TaggedData dr) ix) -> String
+  gshowd dr constraintsr (Ret ix) () Refl = ""
+  gshowd dr constraintsr (Arg A kdesc) (showa, showkdesc) (arg ** rest) =
+    " " ++ paranthesize (show @{showa} arg)
+        ++ gshowd dr constraintsr (kdesc arg) (showkdesc arg) rest
+  gshowd dr constraintsr (Rec ix kdesc) constraints (rec ** rest) =
+    " " ++ paranthesize (gshow dr constraintsr rec)
+        ++ gshowd dr constraintsr kdesc constraints rest
+
+
+  gshow : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: Constraints Show (Untag d))
+                    -> {ix : Ix} -> (X : TaggedData d ix) -> String
+  gshow d (constraintsl, constraints) (Con (label ** (tag ** rest))) =
+    let (constraintst, constraints') = constraints label
+    in let showrest = assert_total $ gshowd d (constraintsl, constraints) (d label tag) (constraints' tag) rest
+    in label ++ showrest
+
+---- Examples
 VecCtors : CtorEnum
 VecCtors = [ "Nil" , "Cons" ]
 
@@ -59,3 +122,6 @@ Cons {n} x xs = Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))
 
 exampleVec : Vec String 2
 exampleVec = Cons "Hello" (Cons "World" Nil)
+
+VecShowConstraints : {A : _} -> Constraints Show (Untag (VecDesc A))
+VecShowConstraints = ?VecShowConstraints_rhs
