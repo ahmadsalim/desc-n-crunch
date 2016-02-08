@@ -65,10 +65,10 @@ applyCtor cn argCount tac =
 ||| constructors in the order that they were defined. Otherwise, use
 ||| the argument tactic. Do this recursively.
 covering
-resolveTCPlus' : Nat -> List TTName -> Elab () -> Elab ()
-resolveTCPlus' Z _ _ =
+dfsearch : Nat -> List TTName -> Elab () -> Elab ()
+dfsearch Z _ _ =
   fail [TextPart "Search failed because the depth limit was reached."]
-resolveTCPlus' (S k) tns tac =
+dfsearch (S k) tns tac =
   do attack
      try $ repeatUntilFail intro'
      case headName !goalType of
@@ -78,13 +78,17 @@ resolveTCPlus' (S k) tns tac =
            then tac
            else do ctors <- constructors <$> lookupDatatypeExact n
                    choice (map (\(cn, args, _) =>
-                                 applyCtor cn (length args) (resolveTCPlus' k tns tac))
+                                 applyCtor cn (length args) (dfsearch k tns tac))
                                ctors)
      solve -- the attack
 
 covering
+iddfsearch : Nat -> List TTName -> Elab () -> Elab ()
+iddfsearch k tns tac = choice $ map (\i => dfsearch i tns tac) [0..k]
+
+covering
 resolveTCPlus : Elab ()
-resolveTCPlus = resolveTCPlus' 100 [`{Unit}, `{Pair}] (resolveTC `{resolveTCPlus})
+resolveTCPlus = iddfsearch 100 [`{Unit}, `{Pair}] (resolveTC `{resolveTCPlus})
 
 paranthesize : String -> String
 paranthesize str = if length (words str) <= 1 then str else "(" ++ str ++ ")"
