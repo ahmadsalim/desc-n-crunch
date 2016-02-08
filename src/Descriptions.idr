@@ -4,9 +4,9 @@ import Language.Reflection
 import Language.Reflection.Errors
 import Language.Reflection.Utils
 
-import Pruviloj.Core
+import Pruviloj
 import Pruviloj.Internals
-import Pruviloj.Induction
+
 
 %default total
 %auto_implicits off
@@ -53,30 +53,38 @@ Constraints Interface (Rec ix kdesc) = Constraints Interface kdesc
 TaggedConstraints : {e, Ix: _} -> (Interface: Type -> Type) -> (td: TaggedDesc e Ix) -> Type
 TaggedConstraints {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> Constraints Interface (td l t)
 
-partial
-resolveTCPlus : Elab Unit
-resolveTCPlus = do case !goalType of
-                     `(Unit : Type) =>
-                       do fill `(() : Unit)
-                          solve
-                     `(Pair ~a ~b : Type) =>
-                       do aH <- gensym "a"
-                          bH <- gensym "b"
-                          claim aH a
-                          claim bH b
-                          fill `(MkPair {A=~a} {B=~b} ~(Var aH) ~(Var bH)); solve
-                          focus aH; resolveTCPlus
-                          focus bH; resolveTCPlus
-                     `(~a -> ~b) =>
-                       do bH <- gensym "bH"
-                          aH <- gensym "aH"
-                          claim bH b
-                          fill (RBind aH (Lam a) (Var bH)); solve
-                          focus bH; resolveTCPlus
-                     `(~iface : Type) =>
-                         let (ifacef, args) = unApply iface
-                         in case ifacef of
-                             (Var ifacenm) => resolveTC ifacenm
+
+||| Apply a constructor, inferring as many arguments as possible, and then solve remaining holes with some tactic
+applyCtor : TTName -> Nat -> Elab () -> Elab ()
+applyCtor cn argCount tac =
+  do holes <- apply (Var cn) (replicate argCount True)
+     solve
+     for_ holes (flip inHole tac)
+
+||| If the goal is one of the families named, then use its
+||| constructors in the order that they were defined. Otherwise, use
+||| the argument tactic. Do this recursively.
+covering
+resolveTCPlus' : Nat -> List TTName -> Elab () -> Elab ()
+resolveTCPlus' Z _ _ =
+  fail [TextPart "Search failed because the depth limit was reached."]
+resolveTCPlus' (S k) tns tac =
+  do attack
+     try $ repeatUntilFail intro'
+     case headName !goalType of
+       Nothing => tac
+       Just n =>
+         if not (n `elem` tns)
+           then tac
+           else do ctors <- constructors <$> lookupDatatypeExact n
+                   choice (map (\(cn, args, _) =>
+                                 applyCtor cn (length args) (resolveTCPlus' k tns tac))
+                               ctors)
+     solve -- the attack
+
+covering
+resolveTCPlus : Elab ()
+resolveTCPlus = resolveTCPlus' 100 [`{Unit}, `{Pair}] (resolveTC `{resolveTCPlus})
 
 paranthesize : String -> String
 paranthesize str = if length (words str) <= 1 then str else "(" ++ str ++ ")"
