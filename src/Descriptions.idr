@@ -7,6 +7,9 @@ import Language.Reflection.Utils
 import Pruviloj
 import Pruviloj.Internals
 
+import Control.Isomorphism
+import Syntax.PreorderReasoning
+import Data.Vect
 
 %default total
 %auto_implicits off
@@ -189,7 +192,9 @@ Cons {n} x xs = Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))
 exampleVec : Vec String 2
 exampleVec = Cons "Hello" (Cons "World" Nil)
 
--- TODO: Ask David about help automating this even more
+exampleVec' : Vec String 2
+exampleVec' = Cons "World" (Cons "Hello" Nil)
+
 VecShowConstraints : {A : Type} -> (Show A) => TaggedConstraints Show (VecDesc A)
 VecShowConstraints = \l, t =>
   case t of
@@ -199,3 +204,36 @@ VecShowConstraints = \l, t =>
 
 exampleVecShown : gshow (VecDesc String) (VecShowConstraints {A = String}) exampleVec = """Cons 1 "Hello" (Cons 0 "World" Nil)"""
 exampleVecShown = Refl
+
+VecDecEqConstraints : {A : Type} -> (DecEq A) => TaggedConstraints DecEq (VecDesc A)
+VecDecEqConstraints = \l, t =>
+  case t of
+    Z => %runElab resolveTCPlus
+    S Z => %runElab resolveTCPlus
+    S (S Z) impossible
+
+exampleVecDecEqSelf : gdecEq (VecDesc String) (VecDecEqConstraints {A = String}) exampleVec exampleVec = Yes Refl
+exampleVecDecEqSelf = Refl
+
+exampleVecDecEqNil : (contra ** gdecEq (VecDesc String) (VecDecEqConstraints {A = String}) exampleVec exampleVec' = No contra)
+exampleVecDecEqNil = (_ ** Refl)
+
+toVecDesc : {A, n: _} -> Vect n A -> Vec A n
+toVecDesc [] = []
+toVecDesc (x :: xs) = Cons x (toVecDesc xs)
+fromVecDesc : {A, n: _} -> Vec A n -> Vect n A
+fromVecDesc (Con ("Nil" ** (Z ** Refl))) = []
+fromVecDesc (Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))) = x :: fromVecDesc xs
+fromVecDesc (Con (_ ** (S (S Z) ** res))) impossible
+toFromVecDesc : {A, n: _} -> (xs : Vec A n) -> toVecDesc (fromVecDesc xs) = xs
+toFromVecDesc (Con ("Nil" ** (Z ** Refl))) = Refl
+toFromVecDesc (Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))) with (toFromVecDesc xs)
+  toFromVecDesc (Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))) | ih = rewrite ih in Refl
+toFromVecDesc (Con (_ ** (S (S Z) ** res))) impossible
+fromToVecDesc : {A, n: _} -> (xs : Vect n A) -> fromVecDesc (toVecDesc xs) = xs
+fromToVecDesc [] = Refl
+fromToVecDesc (x :: xs) with (fromToVecDesc xs)
+  fromToVecDesc (x :: xs) | ih = rewrite ih in Refl
+
+vecIso : {A, n: _} -> Iso (Vect n A) (Vec A n)
+vecIso = MkIso toVecDesc fromVecDesc toFromVecDesc fromToVecDesc
