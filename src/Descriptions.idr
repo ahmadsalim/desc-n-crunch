@@ -31,6 +31,10 @@ data Tag : CtorLabel -> CtorEnum -> Type where
   Z : {l, e: _}    ->  Tag l (l :: e)
   S : {l, l', e: _} -> Tag l e -> Tag l (l' :: e)
 
+implementation Uninhabited (Tag _ []) where
+  uninhabited Z impossible
+  uninhabited (S t') impossible
+
 TaggedDesc : (e: CtorEnum) -> (Ix: Type) -> Type
 TaggedDesc e Ix = (l: CtorLabel) -> Tag l e -> Desc Ix
 
@@ -177,8 +181,9 @@ ConsTag : Tag "Cons" VecCtors
 ConsTag = %runElab search
 
 VecDesc : (A : Type) -> TaggedDesc VecCtors Nat
-VecDesc A "Nil" Z = Ret Z
-VecDesc A "Cons" (S Z) = Arg Nat (\n => Arg A (\a => Rec n (Ret (S n))))
+VecDesc A _ Z = Ret Z
+VecDesc A _ (S Z) = Arg Nat (\n => Arg A (\a => Rec n (Ret (S n))))
+VecDesc A _ (S (S k)) = absurd k
 
 Vec : (A : Type) -> Nat -> Type
 Vec A n = TaggedData (VecDesc A) n
