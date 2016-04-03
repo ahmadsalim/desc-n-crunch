@@ -242,3 +242,17 @@ fromToVecDesc (x :: xs) with (fromToVecDesc xs)
 
 vecIso : {A, n: _} -> Iso (Vect n A) (Vec A n)
 vecIso = MkIso toVecDesc fromVecDesc toFromVecDesc fromToVecDesc
+
+isoTo : {A, B : Type} -> Iso A B -> A -> B
+isoTo (MkIso to from toFrom fromTo) = to
+
+decEqIso : {A, B: Type} -> {a1, a2: A} ->
+           (iso : Iso A B) -> Dec (a1 = a2) ->
+             Dec (isoTo iso a1 = isoTo iso a2)
+decEqIso (MkIso to from toFrom fromTo) (Yes prf) = Yes (cong prf)
+decEqIso {a1} {a2} (MkIso to from toFrom fromTo) (No contra) =
+  No (\prf =>
+    let prf': (from (to a1) = from (to a2)) = cong prf
+    in let prf'' = replace {P = \a => a = from (to a2)} (fromTo a1) prf'
+    in let prf''' = replace {P = \a => a1 = a} (fromTo a2) prf''
+    in contra prf''')
