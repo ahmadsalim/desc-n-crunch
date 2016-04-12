@@ -10,6 +10,7 @@ import Pruviloj.Internals
 import Control.Isomorphism
 import Syntax.PreorderReasoning
 import Data.Vect
+import Data.Fin
 
 %default total
 %auto_implicits off
@@ -20,6 +21,7 @@ data Desc : (Ix: Type) -> Type where
   Rec : {Ix: _} -> (ix: Ix)  -> (kdesc: Desc Ix) -> Desc Ix
 
 %name Desc d, desc
+
 
 CtorLabel : Type
 CtorLabel = String
@@ -48,6 +50,22 @@ Synthesize (Rec ix kdesc) X jx = (x: X ix ** Synthesize kdesc X jx)
 
 data Data : {Ix: Type} -> Desc Ix -> Ix -> Type where
   Con : {Ix: _} -> {d : Desc Ix} -> {ix : Ix} -> Synthesize d (Data d) ix -> Data d ix
+
+data PDesc : (n : Nat) -> (Ix : Type) -> Type where
+  PRet  : {n,Ix: _} -> (ix: Ix)  -> PDesc n Ix
+  PArg  : {n,Ix: _} -> (A: Type) -> (kdesc: (a: A) -> PDesc n Ix) -> PDesc n Ix
+  PPar  : {n,Ix: _} -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
+  PMap  : {n,Ix: _} -> (f : Type -> Type) -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
+  PRec  : {n,Ix: _} -> (ix: Ix)  -> (kdesc: PDesc n Ix) -> PDesc n Ix
+
+SynthesiseP1 : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
+SynthesiseP1 (PRet ix) = \B => PRet ix
+SynthesiseP1 (PArg A kdesc) = \B => PArg A (\a : A => SynthesiseP1 (kdesc a) B)
+SynthesiseP1 (PPar FZ kdesc) = \B => PArg B (\_ => SynthesiseP1 kdesc B)
+SynthesiseP1 (PPar (FS k) kdesc) = \B => PPar k (SynthesiseP1 kdesc B)
+SynthesiseP1 (PMap F FZ kdesc) = \B => PArg (F B) (\_ => SynthesiseP1 kdesc B)
+SynthesiseP1 (PMap F (FS k) kdesc) = \B => PMap F k (SynthesiseP1 kdesc B)
+SynthesiseP1 (PRec ix kdesc) = \B => PRec ix (SynthesiseP1 kdesc B)
 
 TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
 TaggedData d = Data (Untag d)
@@ -223,6 +241,8 @@ exampleVecDecEqSelf = Refl
 exampleVecDecEqNil : (contra ** gdecEq (VecDesc String) (VecDecEqConstraints {A = String}) exampleVec exampleVec' = No contra)
 exampleVecDecEqNil = (_ ** Refl)
 
+{-
+
 toVecDesc : {A, n: _} -> Vect n A -> Vec A n
 toVecDesc [] = []
 toVecDesc (x :: xs) = Cons x (toVecDesc xs)
@@ -256,3 +276,5 @@ decEqIso {a1} {a2} (MkIso to from toFrom fromTo) (No contra) =
     in let prf'' = replace {P = \a => a = from (to a2)} (fromTo a1) prf'
     in let prf''' = replace {P = \a => a1 = a} (fromTo a2) prf''
     in contra prf''')
+
+  -}
