@@ -58,14 +58,30 @@ data PDesc : (n : Nat) -> (Ix : Type) -> Type where
   PMap  : {n,Ix: _} -> (f : Type -> Type) -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
   PRec  : {n,Ix: _} -> (ix: Ix)  -> (kdesc: PDesc n Ix) -> PDesc n Ix
 
-SynthesiseP1 : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
-SynthesiseP1 (PRet ix) = \B => PRet ix
-SynthesiseP1 (PArg A kdesc) = \B => PArg A (\a : A => SynthesiseP1 (kdesc a) B)
-SynthesiseP1 (PPar FZ kdesc) = \B => PArg B (\_ => SynthesiseP1 kdesc B)
-SynthesiseP1 (PPar (FS k) kdesc) = \B => PPar k (SynthesiseP1 kdesc B)
-SynthesiseP1 (PMap F FZ kdesc) = \B => PArg (F B) (\_ => SynthesiseP1 kdesc B)
-SynthesiseP1 (PMap F (FS k) kdesc) = \B => PMap F k (SynthesiseP1 kdesc B)
-SynthesiseP1 (PRec ix kdesc) = \B => PRec ix (SynthesiseP1 kdesc B)
+SynthesizeP1 : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
+SynthesizeP1 (PRet ix) = \B => PRet ix
+SynthesizeP1 (PArg A kdesc) = \B => PArg A (\a : A => SynthesizeP1 (kdesc a) B)
+SynthesizeP1 (PPar FZ kdesc) = \B => PArg B (\_ => SynthesizeP1 kdesc B)
+SynthesizeP1 (PPar (FS k) kdesc) = \B => PPar k (SynthesizeP1 kdesc B)
+SynthesizeP1 (PMap F FZ kdesc) = \B => PArg (F B) (\_ => SynthesizeP1 kdesc B)
+SynthesizeP1 (PMap F (FS k) kdesc) = \B => PMap F k (SynthesizeP1 kdesc B)
+SynthesizeP1 (PRec ix kdesc) = \B => PRec ix (SynthesizeP1 kdesc B)
+
+
+SynthesizePType : (n : Nat) -> (Ix : Type) -> Type
+SynthesizePType Z Ix = (Ix -> Type) -> (Ix -> Type)
+SynthesizePType (S k) Ix = Type -> SynthesizePType k Ix
+
+PDescToDesc : {Ix : Type} -> PDesc Z Ix -> Desc Ix
+PDescToDesc (PRet ix) = Ret ix
+PDescToDesc (PArg A kdesc) = Arg A (\a => PDescToDesc (kdesc a))
+PDescToDesc (PPar k kdesc) = absurd k
+PDescToDesc (PMap f k kdesc) = absurd k
+PDescToDesc (PRec ix kdesc) = Rec ix (PDescToDesc kdesc)
+
+SynthesizeP : {n, Ix: _} -> PDesc n Ix -> SynthesizePType n Ix
+SynthesizeP {n = Z} x = Synthesize (PDescToDesc x)
+SynthesizeP {n = (S k)} x = \a => SynthesizeP (SynthesizeP1 x a)
 
 TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
 TaggedData d = Data (Untag d)
