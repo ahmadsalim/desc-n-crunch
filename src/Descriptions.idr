@@ -1,5 +1,6 @@
 module Descriptions
 
+
 import Language.Reflection
 import Language.Reflection.Errors
 import Language.Reflection.Utils
@@ -11,6 +12,8 @@ import Control.Isomorphism
 import Syntax.PreorderReasoning
 import Data.Vect
 import Data.Fin
+
+%hide Data
 
 %default total
 %auto_implicits off
@@ -58,19 +61,23 @@ data PDesc : (n : Nat) -> (Ix : Type) -> Type where
   PMap  : {n,Ix: _} -> (f : Type -> Type) -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
   PRec  : {n,Ix: _} -> (ix: Ix)  -> (kdesc: PDesc n Ix) -> PDesc n Ix
 
-SynthesizeP1 : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
-SynthesizeP1 (PRet ix) = \B => PRet ix
-SynthesizeP1 (PArg A kdesc) = \B => PArg A (\a : A => SynthesizeP1 (kdesc a) B)
-SynthesizeP1 (PPar FZ kdesc) = \B => PArg B (\_ => SynthesizeP1 kdesc B)
-SynthesizeP1 (PPar (FS k) kdesc) = \B => PPar k (SynthesizeP1 kdesc B)
-SynthesizeP1 (PMap F FZ kdesc) = \B => PArg (F B) (\_ => SynthesizeP1 kdesc B)
-SynthesizeP1 (PMap F (FS k) kdesc) = \B => PMap F k (SynthesizeP1 kdesc B)
-SynthesizeP1 (PRec ix kdesc) = \B => PRec ix (SynthesizeP1 kdesc B)
+PUnfold : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
+PUnfold (PRet ix) = \B => PRet ix
+PUnfold (PArg A kdesc) = \B => PArg A (\a : A => PUnfold (kdesc a) B)
+PUnfold (PPar FZ kdesc) = \B => PArg B (\_ => PUnfold kdesc B)
+PUnfold (PPar (FS k) kdesc) = \B => PPar k (PUnfold kdesc B)
+PUnfold (PMap F FZ kdesc) = \B => PArg (F B) (\_ => PUnfold kdesc B)
+PUnfold (PMap F (FS k) kdesc) = \B => PMap F k (PUnfold kdesc B)
+PUnfold (PRec ix kdesc) = \B => PRec ix (PUnfold kdesc B)
 
 
-SynthesizePType : (n : Nat) -> (Ix : Type) -> Type
-SynthesizePType Z Ix = (Ix -> Type) -> (Ix -> Type)
-SynthesizePType (S k) Ix = Type -> SynthesizePType k Ix
+FunTy : .{n : Nat} -> (argtys : Vect n Type) -> (rty : Type) -> Type
+FunTy [] rty = rty
+FunTy (argty :: argtys) rty = argty -> FunTy argtys rty
+
+composeFun : {argtys, rty, argtys', rty' : _} -> FunTy argtys rty -> FunTy (rty::argtys') rty' -> FunTy (argtys ++ argtys') rty'
+composeFun {argtys = []} v g = g v
+composeFun {argtys = (x :: xs)} f g = \x => composeFun (f x) g
 
 PDescToDesc : {Ix : Type} -> PDesc Z Ix -> Desc Ix
 PDescToDesc (PRet ix) = Ret ix
@@ -79,9 +86,13 @@ PDescToDesc (PPar k kdesc) = absurd k
 PDescToDesc (PMap f k kdesc) = absurd k
 PDescToDesc (PRec ix kdesc) = Rec ix (PDescToDesc kdesc)
 
-SynthesizeP : {n, Ix: _} -> PDesc n Ix -> SynthesizePType n Ix
-SynthesizeP {n = Z} x = Synthesize (PDescToDesc x)
-SynthesizeP {n = (S k)} x = \a => SynthesizeP (SynthesizeP1 x a)
+PSynthesize : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) ((Ix -> Type) -> (Ix -> Type))
+PSynthesize {n = Z} x = Synthesize (PDescToDesc x)
+PSynthesize {n = (S k)} x = \a => PSynthesize (PUnfold x a)
+
+PData : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) (Ix -> Type)
+PData {n = Z} x = Data (PDescToDesc x)
+PData {n = (S k)} x = \a => PData (PUnfold x a)
 
 TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
 TaggedData d = Data (Untag d)
@@ -161,7 +172,7 @@ lemma_TagSInjective : {l,lr,e,er:_} -> {t : Tag l e} -> {t' : Tag lr er}
                      -> Descriptions.S t = Descriptions.S t' -> t = t'
 lemma_TagSInjective Refl = Refl
 
-using (l,e:_)
+using (l: CtorLabel, e: CtorEnum)
   implementation DecEq (Tag l e) where
     decEq Z Z = Yes Refl
     decEq Z (S _) = No lemma_TagZnotS
