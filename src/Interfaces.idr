@@ -2,6 +2,9 @@ module Interfaces
 
 import public Data.So
 
+%default total
+%access public export
+
 interface Eq a => VEq a where
   eqReflexive  : {x : a} -> So (x == x)
   eqSymmetric  : {x,y : a} -> So (y == x) -> So (x == y)
@@ -16,7 +19,8 @@ interface Ord a => VOrd a where
   leqAntisymmetric : {x,y : a} -> So (x <= y) -> So (y <= x) -> So (x == y)
   leqTotal : {x, y: a} -> Either (So (x <= y)) (So (y <= x))
 
-interface (VOrd a, SEq a) => SOrd a where
+interface VOrd a => SOrd a where
+  leqAntisymmetricReflective : {x, y: a} -> So (x <= y) -> So (y <= x) -> x = y
 
 interface Functor f => VFunctor (f : Type -> Type) where
   mapWithId      : {a : Type} -> {x : f a} -> map (id {a = a}) x = id {a = f a} x
