@@ -56,3 +56,33 @@ mutual
       gleqReflexive d constraints (Con (l ** t ** r)) | (Right x) | cptagrefl =
         (\Refl impossible) (trans cptag cptagrefl)
 
+mutual
+  gleqdTotal : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> (Y: Synthesize d (TaggedData dr) ix) -> Either (So (gleqd dr constraintsr d constraints X Y)) (So (gleqd dr constraintsr d constraints Y X))
+  gleqdTotal dr constraintsr (Ret ix) constraints Refl Refl = Left Oh
+  gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) with (choose (a1 <= a2))
+    gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Left l) with (choose (a2 <= a1))
+      gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Left l) | (Left x) with (leqAntisymmetricReflective {x = a1} {y = a2} l x)
+        gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl with (assert_total $ gleqdTotal dr constraintsr (kdesc a) (sordr a) r1 r2)
+          gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Left y) = Left y
+          gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) with (choose (a <= a))
+            gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) | (Left y) with (leqAntisymmetricReflective {x = a} {y = a} x y)
+              gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) | (Left y) | Refl with (assert_total $ gleqdTotal dr constraintsr (kdesc a) (sordr a) r1 r2)
+                gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) | (Left y) | Refl | (Left z) = Left z
+                gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) | (Left y) | Refl | (Right z) = Right z
+            gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Left l) | (Left x) | Refl | (Right r) | (Right y) = void (soNotSo x y)
+      gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Left l) | (Right r) = Left Oh
+    gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) with (choose (a2 <= a1))
+      gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Left l) with (choose (a1 <= a2))
+        gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Left l) | (Left x) with (leqAntisymmetricReflective {x = a2} {y = a1} l x)
+          gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) | (Right r) | (Left l) | (Left x) | Refl = void (soNotSo l r)
+        gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Left l) | (Right x) = Right Oh
+      gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) with (leqTotal {x = a1} {y = a2})
+        gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) | (Left l) = void (soNotSo l r)
+        gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) | (Right y) = void (soNotSo y x)
+  gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) with (gleqTotal dr constraintsr ra1 ra2)
+    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) with (gleqdTotal dr constraintsr kdesc constraints r1 r2)
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) | (Left x) = rewrite soToEq l in Left x
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) | (Right r) = ?rhs_2
+    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Right r) = ?gleqdTotal_rhs_2
+
+  gleqTotal : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X: TaggedData d ix) -> (Y: TaggedData d ix) -> Either (So (gleq d constraints X Y)) (So (gleq d constraints Y X))
