@@ -31,4 +31,28 @@ mutual
     gleq d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) | (Left Refl) = gleqd d constraints (d l t) (constraints l t) r1 r2
     gleq d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right r) = r
 
+compareTagsReflective : {e,l : _} -> (t : Tag l e) -> compareTags t t = Left Refl
+compareTagsReflective Z = Refl
+compareTagsReflective (S x) with (compareTagsReflective x)
+  compareTagsReflective (S x) | res = rewrite res in Refl
+
+
+mutual
+  gleqdReflexive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints X X)
+  gleqdReflexive dr constraintsr (Ret ix) constraints Refl = Oh
+  gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) with (choose (arg <= arg))
+    gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) with (choose (arg <= arg)) -- why do we need to do this again?
+      gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Left x) with (leqAntisymmetricReflective {x = arg} {y = arg} l x)
+        gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Left x) | Refl =
+          assert_total $ gleqdReflexive dr constraintsr (kdesc arg) (sordr arg) rest
+      gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Right r) = Oh -- This seems counter-intuitive but looks true-ish
+    gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Right r) = void (soNotSo (leqReflexive {x = arg}) r)
+  gleqdReflexive dr constraintsr (Rec ix kdesc) constraints (rec ** rest) with (assert_total $ gleqReflexive dr constraintsr rec)
+    gleqdReflexive dr constraintsr (Rec ix kdesc) constraints (rec ** rest) | recleqrefl = rewrite soToEq recleqrefl in gleqdReflexive dr constraintsr kdesc constraints rest
+  gleqReflexive : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X: TaggedData d ix) -> So (gleq d constraints X X)
+  gleqReflexive d constraints (Con (l ** t ** r)) with (compareTags t t) proof cptag
+    gleqReflexive d constraints (Con (l ** t ** r)) | (Left Refl) = gleqdReflexive d constraints (d l t) (constraints l t) r
+    gleqReflexive d constraints (Con (l ** t ** r)) | (Right x) with (compareTagsReflective t)
+      gleqReflexive d constraints (Con (l ** t ** r)) | (Right x) | cptagrefl =
+        (\Refl impossible) (trans cptag cptagrefl)
 
