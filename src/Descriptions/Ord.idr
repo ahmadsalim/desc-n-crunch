@@ -24,7 +24,13 @@ mutual
           gleqd dr constraintsr (Arg A kdesc) (orda, ordr) (a ** r1) (a ** r2) | (Left l) | (Left l') | Refl = assert_total $ gleqd dr constraintsr (kdesc a) (ordr a) r1 r2
       gleqd dr constraintsr (Arg A kdesc) (orda, ordr) (a1 ** r1) (a2 ** r2) | (Left l) | (Right r) = True
     gleqd dr constraintsr (Arg A kdesc) (orda, ordr) (a1 ** r1) (a2 ** r2) | (Right r) = False
-  gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) = assert_total $ gleq dr constraintsr x1 x2 && gleqd dr constraintsr kdesc constraints r1 r2
+  gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) with (assert_total $ gleq dr constraintsr x1 x2)
+    gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) | False = False
+    gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) | True with (assert_total $ gleq dr constraintsr x2 x1)
+      gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) | True | False = True
+      gleqd dr constraintsr (Rec ix kdesc) constraints (x1 ** r1) (x2 ** r2) | True | True = gleqd dr constraintsr kdesc constraints r1 r2
+
+
 
   gleq : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X : TaggedData d ix) -> (Y : TaggedData d ix) -> Bool
   gleq d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) with (compareTags t1 t2)
@@ -36,6 +42,24 @@ compareTagsReflective Z = Refl
 compareTagsReflective (S x) with (compareTagsReflective x)
   compareTagsReflective (S x) | res = rewrite res in Refl
 
+compareTagsRightUnequal : {e, l, l', v : _} -> (t : Tag l e) -> (t' : Tag l' e) -> (compareTags t t' = Right v) -> (t = t') -> Void
+compareTagsRightUnequal Z Z Refl _ impossible
+compareTagsRightUnequal Z (S _) _ Refl impossible
+compareTagsRightUnequal (S _) Z _ Refl impossible
+compareTagsRightUnequal (S x) (S x) prf Refl with (trans (sym $ compareTagsReflective (S x)) prf)
+  compareTagsRightUnequal (S _) (S _) _ Refl | Refl impossible
+
+compareTagsRightFRightFVoid : {e, l, l2 : _} -> (t : Tag l e) -> (t2 : Tag l2 e) -> (compareTags t t2 = Right False) -> (compareTags t2 t = Right False) -> Void
+compareTagsRightFRightFVoid Z Z Refl _ impossible
+compareTagsRightFRightFVoid Z (S _) Refl _ impossible
+compareTagsRightFRightFVoid (S _) Z _ Refl impossible
+compareTagsRightFRightFVoid (S x) (S y) prf prf1 with (compareTags x y) proof xr
+  compareTagsRightFRightFVoid (S _) (S _) Refl _ | (Left Refl) impossible
+  compareTagsRightFRightFVoid (S x) (S y) prf prf1 | (Right False) with (compareTags y x) proof yr
+    compareTagsRightFRightFVoid (S _) (S _) _ Refl | (Right False) | (Left Refl) impossible
+    compareTagsRightFRightFVoid (S x) (S y) prf prf1 | (Right False) | (Right False) = compareTagsRightFRightFVoid x y (sym xr) (sym yr)
+    compareTagsRightFRightFVoid (S _) (S _) _ Refl | (Right False) | (Right True) impossible
+  compareTagsRightFRightFVoid (S _) (S _) Refl _ | (Right True) impossible
 
 mutual
   gleqdReflexive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints X X)
@@ -48,14 +72,14 @@ mutual
       gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Right r) = Oh -- This seems counter-intuitive but looks true-ish
     gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Right r) = void (soNotSo (leqReflexive {x = arg}) r)
   gleqdReflexive dr constraintsr (Rec ix kdesc) constraints (rec ** rest) with (assert_total $ gleqReflexive dr constraintsr rec)
-    gleqdReflexive dr constraintsr (Rec ix kdesc) constraints (rec ** rest) | recleqrefl = rewrite soToEq recleqrefl in gleqdReflexive dr constraintsr kdesc constraints rest
+    gleqdReflexive dr constraintsr (Rec ix kdesc) constraints (rec ** rest) | recleqrefl =
+      rewrite soToEq recleqrefl in rewrite soToEq recleqrefl in gleqdReflexive dr constraintsr kdesc constraints rest
   gleqReflexive : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X: TaggedData d ix) -> So (gleq d constraints X X)
   gleqReflexive d constraints (Con (l ** t ** r)) with (compareTags t t) proof cptag
     gleqReflexive d constraints (Con (l ** t ** r)) | (Left Refl) = gleqdReflexive d constraints (d l t) (constraints l t) r
     gleqReflexive d constraints (Con (l ** t ** r)) | (Right x) with (compareTagsReflective t)
       gleqReflexive d constraints (Con (l ** t ** r)) | (Right x) | cptagrefl =
         (\Refl impossible) (trans cptag cptagrefl)
-
 mutual
   gleqdTotal : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> (Y: Synthesize d (TaggedData dr) ix) -> Either (So (gleqd dr constraintsr d constraints X Y)) (So (gleqd dr constraintsr d constraints Y X))
   gleqdTotal dr constraintsr (Ret ix) constraints Refl Refl = Left Oh
@@ -79,10 +103,33 @@ mutual
       gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) with (leqTotal {x = a1} {y = a2})
         gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) | (Left l) = void (soNotSo l r)
         gleqdTotal dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) | (Right r) | (Right x) | (Right y) = void (soNotSo y x)
-  gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) with (gleqTotal dr constraintsr ra1 ra2)
-    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) with (gleqdTotal dr constraintsr kdesc constraints r1 r2)
-      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) | (Left x) = rewrite soToEq l in Left x
-      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Left l) | (Right r) = ?rhs_2
-    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | (Right r) = ?gleqdTotal_rhs_2
+  gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) with (gleq dr constraintsr ra1 ra2) proof ra1leqra2
+    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False with (gleq dr constraintsr ra2 ra1) proof ra2leqra1
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | False with (assert_total $ gleqTotal dr constraintsr ra1 ra2)
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | False | (Left l) with (trans ra1leqra2 (soToEq l))
+          gleqdTotal _ _ (Rec _ _) _ (_ ** _) (_ ** _) | False | False | (Left _) | Refl impossible
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | False | (Right r) with (trans ra2leqra1 (soToEq r))
+          gleqdTotal _ _ (Rec _ _) _ (_ ** _) (_ ** _) | False | False | (Right _) | Refl impossible
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | True with (gleqd dr constraintsr kdesc constraints r2 r1) proof r2leqr1
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | True | False = rewrite sym ra1leqra2 in Right Oh
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | False | True | True = rewrite sym ra1leqra2 in Right Oh
+    gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True with (gleq dr constraintsr ra2 ra1) proof ra2leqra1
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | False = Left Oh
+      gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True with (gleqd dr constraintsr kdesc constraints r1 r2) proof r1leqr2
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False with (gleqd dr constraintsr kdesc constraints r2 r1) proof r2leqr1
+          gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False | False with (assert_total $ gleqdTotal dr constraintsr kdesc constraints r1 r2)
+            gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False | False | (Left l) with (trans r1leqr2 (soToEq l))
+              gleqdTotal _ _ (Rec _ _) _ (_ ** _) (_ ** _) | True | True | False | False | (Left _) | Refl impossible
+            gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False | False | (Right r) with (trans r2leqr1 (soToEq r))
+              gleqdTotal _ _ (Rec _ _) _ (_ ** _) (_ ** _) | True | True | False | False | (Right _) | Refl impossible
+          gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False | True = rewrite sym ra1leqra2 in rewrite sym r2leqr1 in Right Oh
+        gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | True = Left Oh
 
   gleqTotal : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X: TaggedData d ix) -> (Y: TaggedData d ix) -> Either (So (gleq d constraints X Y)) (So (gleq d constraints Y X))
+  gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) with (compareTags t1 t2) proof t1leqt2
+    gleqTotal d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) | (Left Refl) = rewrite compareTagsReflective t in gleqdTotal d constraints (d l t) (constraints l t) r1 r2
+    gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right False) with (compareTags t2 t1) proof t2leqt1
+      gleqTotal d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) | (Right False) | (Left Refl) = void (compareTagsRightUnequal t t (sym t1leqt2) Refl)
+      gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right False) | (Right False) = void (compareTagsRightFRightFVoid t1 t2 (sym t1leqt2) (sym t2leqt1))
+      gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right False) | (Right True) = Right Oh
+    gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right True) = Left Oh
