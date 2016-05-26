@@ -8,6 +8,15 @@ import Descriptions.Core
 paranthesize : String -> String
 paranthesize str = if length (words str) <= 1 then str else "(" ++ str ++ ")"
 
+showLabel : TTName -> String
+showLabel (UN n) with (strM n)
+  showLabel (UN "") | StrNil = ""
+  showLabel (UN (strCons x xs)) | (StrCons x xs) =
+    if isAlpha x then strCons x xs else "(" ++ strCons x xs ++ ")"
+showLabel (NS n xs) = concat (intersperse "." (reverse xs)) ++ "." ++ showLabel n
+showLabel (MN x y) = "{" ++ y ++ show x ++ "}"
+showLabel (SN sn) = "{{SN}}"
+
 mutual
   gshowd : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints Show dr)
     -> (d: Desc Ix) -> (constraints: Constraints Show d)
@@ -26,4 +35,4 @@ mutual
   gshow d constraints (Con (label ** (tag ** rest))) =
     let constraints' = constraints label tag
     in let showrest = assert_total $ gshowd d constraints (d label tag) constraints' rest
-    in label ++ showrest
+    in showLabel label ++ showrest

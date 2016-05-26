@@ -3,16 +3,17 @@ module Descriptions.Examples
 import Descriptions.Core
 import Descriptions.Show
 import Descriptions.DecEq
+import Descriptions.Functor
 import Control.Isomorphism
 
 ---- Examples
 VecCtors : CtorEnum
-VecCtors = [ "Nil" , "Cons" ]
+VecCtors = [ `{Vect.Nil} , `{Vect.(::)} ]
 
-NilTag : Tag "Nil" VecCtors
+NilTag : Tag `{Vect.Nil} VecCtors
 NilTag = %runElab search
 
-ConsTag : Tag "Cons" VecCtors
+ConsTag : Tag `{Vect.(::)} VecCtors
 ConsTag = %runElab search
 
 VecDesc : (A : Type) -> TaggedDesc VecCtors Nat
@@ -24,16 +25,18 @@ Vec : (A : Type) -> Nat -> Type
 Vec A n = TaggedData (VecDesc A) n
 
 Nil : {A: Type} -> Vec A Z
-Nil = Con ("Nil" ** (Z ** Refl))
+Nil = Con (`{Vect.Nil} ** (Z ** Refl))
 
 Cons : {A: Type} -> {n: Nat} -> A -> Vec A n -> Vec A (S n)
-Cons {n} x xs = Con ("Cons" ** (S Z ** (n ** (x ** (xs ** Refl)))))
+Cons {n} x xs = Con (`{Vect.(::)} ** (S Z ** (n ** (x ** (xs ** Refl)))))
 
 exampleVec : Vec String 2
 exampleVec = Cons "Hello" (Cons "World" Nil)
 
 exampleVec' : Vec String 2
 exampleVec' = Cons "World" (Cons "Hello" Nil)
+
+
 
 {-
 VecShowConstraints : {A : Type} -> (Show A) => TaggedConstraints Show (VecDesc A)
@@ -45,6 +48,7 @@ VecShowConstraints = \l, t =>
 
 exampleVecShown : gshow (VecDesc String) (VecShowConstraints {A = String}) exampleVec = """Cons 1 "Hello" (Cons 0 "World" Nil)"""
 exampleVecShown = Refl
+
 
 VecDecEqConstraints : {A : Type} -> (DecEq A) => TaggedConstraints DecEq (VecDesc A)
 VecDecEqConstraints = \l, t =>

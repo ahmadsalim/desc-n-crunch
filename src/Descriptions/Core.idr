@@ -34,7 +34,7 @@ data Desc : (Ix: Type) -> Type where
 %name Desc d, desc
 
 CtorLabel : Type
-CtorLabel = String
+CtorLabel = TTName
 
 ||| A set of labels that give the names of the constructors for a datatype
 CtorEnum : Type
