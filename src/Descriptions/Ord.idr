@@ -71,11 +71,12 @@ compareTagsRightFRightFVoid {v = True} (S x) (S y) prf prf1 with (compareTags x 
     compareTagsRightFRightFVoid {v = True} (S _) (S _) _ Refl | (Right True) | (Right False) impossible
     compareTagsRightFRightFVoid {v = True} (S x) (S y) prf prf1 | (Right True) | (Right True) = compareTagsRightFRightFVoid {v = True} x y (sym xleqy) (sym yleqx)
 
+{-
 mutual
   gleqdReflexive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints X X)
   gleqdReflexive dr constraintsr (Ret ix) constraints Refl = Oh
   gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) with (choose (arg <= arg))
-    gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) with (choose (arg <= arg)) -- why do we need to do this again?
+    gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) with (choose (arg <= arg)) -- why do we need to do this again
       gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Left x) with (leqAntisymmetricReflective {x = arg} {y = arg} l x)
         gleqdReflexive dr constraintsr (Arg A kdesc) (sorda, sordr) (arg ** rest) | (Left l) | (Left x) | Refl =
           assert_total $ gleqdReflexive dr constraintsr (kdesc arg) (sordr arg) rest
@@ -180,3 +181,56 @@ mutual
       gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right True) | (Right False) = case yleqx of Oh impossible
       gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right True) | (Right True) =
           void (compareTagsRightFRightFVoid t1 t2 (sym t1leqt2) (sym t2leqt1))
+-}
+
+mutual
+  gleqdTransitive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix : Ix} -> (x: Synthesize d (TaggedData dr) ix) -> (y: Synthesize d (TaggedData dr) ix) -> (z: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints x z) -> So (gleqd dr constraintsr d constraints z y) -> So (gleqd dr constraintsr d constraints x y)
+  gleqdTransitive dr constraintsr (Ret ix) constraints Refl Refl Refl xleqz zleqy = Oh
+  gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy with (choose (a1 <= a2))
+    gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Left l) with (choose (a2 <= a1))
+      gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) with (leqAntisymmetricReflective {x = a1} {y = a2} l x)
+        gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl with (choose (a <= a3))
+          gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) with (choose (a3 <= a))
+            gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) with (choose (a <= a3))
+              gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) | (Left w) with (leqAntisymmetricReflective {x = a} {y = a3} w z)
+                gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) | (Left w) | Refl with (leqAntisymmetricReflective {x = a} {y = a} y z)
+                  gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) | (Left w) | Refl | Refl with (leqAntisymmetricReflective {x = a} {y = a} z w)
+                    gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) | (Left w) | Refl | Refl | Refl = assert_total $ gleqdTransitive dr constraintsr (kdesc a) (sordr a) r1 r2 r3 xleqz zleqy
+              gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Left z) | (Right r) = void (soNotSo y r)
+            gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Left y) | (Right r) = case zleqy of Oh impossible
+          gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Left x) | Refl | (Right r) = case xleqz of Oh impossible
+      gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Left l) | (Right r) = Oh
+    gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) with (choose (a1 <= a3))
+      gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) | (Left l) with (choose (a3 <= a2))
+        gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) | (Left l) | (Left x) with (leqTransitive {x = a1} {z = a3} {y = a2} l x)
+          gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) | (Left l) | (Left x) | a1leqa2 = void (soNotSo a1leqa2 r)
+        gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) | (Left l) | (Right x) = case zleqy of Oh impossible
+      gleqdTransitive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | (Right r) | (Right x) = case xleqz of Oh impossible
+  gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy with (gleq dr constraintsr ra1 ra2) proof ra1leqra2
+    gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False with (gleq dr constraintsr ra1 ra3) proof ra1leqra3
+      gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | False = case xleqz of Oh impossible
+      gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True with (gleq dr constraintsr ra3 ra1) proof ra3leqra1
+        gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | False with (gleq dr constraintsr ra3 ra2)
+          gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | False | False = case zleqy of Oh impossible
+          gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | False | True with (gleq dr constraintsr ra2 ra3) proof ra2leqra3
+            gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | False | True | False = ?gleqdTransitive_rhs_4_rhs_3
+            gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | False | True | True = ?gleqdTransitive_rhs_4_rhs_2
+        gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | False | True | True = ?gleqdTransitive_rhs_2
+    gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True with (gleq dr constraintsr ra2 ra1) proof ra2leqra1
+      gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | False = Oh
+      gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True with (gleq dr constraintsr ra1 ra3) proof ra1leqra3
+        gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | False = case xleqz of Oh impossible
+        gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True with (gleq dr constraintsr ra3 ra1) proof ra3leqra1
+          gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False with (gleq dr constraintsr ra3 ra2) proof ra3leqra2
+            gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | False = case zleqy of Oh impossible
+            gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | True with (gleq dr constraintsr ra2 ra3) proof ra2leqra3
+              gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | True | False with (gleqTransitive dr constraintsr ra3 ra1 ra2 (eqToSo $ sym ra3leqra2) (eqToSo $ sym ra2leqra1))
+                gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | True | False | prf = case trans (ra3leqra1) (soToEq prf) of Refl impossible
+              gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | True | True with (gleqTransitive dr constraintsr ra3 ra1 ra2 (eqToSo $ sym ra3leqra2) (eqToSo $ sym ra2leqra1))
+                gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | False | True | True | prf = case trans (ra3leqra1) (soToEq prf) of Refl impossible
+          gleqdTransitive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy | True | True | True | True = ?gleqdTransitive_rhs_3
+
+
+
+  gleqTransitive : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix : Ix} -> (x: TaggedData d ix) -> (y: TaggedData d ix) -> (z: TaggedData d ix) -> So (gleq d constraints x z) -> So (gleq d constraints z y) -> So (gleq d constraints x y)
+  gleqTransitive d constraints x y z xleqz zleqy = ?gleqTransitive_rhs
