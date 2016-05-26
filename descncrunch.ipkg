@@ -2,3 +2,16 @@ package descncrunch
 
 sourcedir = src
 pkgs = pruviloj
+
+modules = Descriptions.Core
+        , Descriptions.DecEq
+        , Descriptions.Eq
+        , Descriptions.Examples
+        , Descriptions.Foldable
+        , Descriptions.Functor
+        , Descriptions.Ord
+        , Descriptions.Show
+        , Descriptions.Tactical
+        , Descriptions.Traversable
+        , Helper
+        , Interfaces

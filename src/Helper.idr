@@ -6,11 +6,23 @@ import public Data.So
 
 %default total
 
+||| Given a vector of argument types and a return type, generate the
+||| corresponding non-dependent function type.
+|||
+||| ```idris example
+||| FunTy [Nat, String, ()] Integer
+||| ```
 public export
 FunTy : .{n : Nat} -> (argtys : Vect n Type) -> (rty : Type) -> Type
 FunTy [] rty = rty
 FunTy (argty :: argtys) rty = argty -> FunTy argtys rty
 
+||| Compose two functions whose argument types are described using
+||| `Vect`.
+|||
+||| ```idris example
+||| (composeFun {argtys = [Nat, Integer]} {rty=Int} {argtys'=[String]} {rty'=Nat} (\x,y => 4) (\i, str => cast i + length str)) Z 3 "fnord"
+||| ```
 public export
 composeFun : {argtys, rty, argtys', rty' : _} -> FunTy argtys rty -> FunTy (rty::argtys') rty' -> FunTy (argtys ++ argtys') rty'
 composeFun {argtys = []} v g = g v
