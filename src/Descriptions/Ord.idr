@@ -49,17 +49,27 @@ compareTagsRightUnequal (S _) Z _ Refl impossible
 compareTagsRightUnequal (S x) (S x) prf Refl with (trans (sym $ compareTagsReflective (S x)) prf)
   compareTagsRightUnequal (S _) (S _) _ Refl | Refl impossible
 
-compareTagsRightFRightFVoid : {e, l, l2 : _} -> (t : Tag l e) -> (t2 : Tag l2 e) -> (compareTags t t2 = Right False) -> (compareTags t2 t = Right False) -> Void
-compareTagsRightFRightFVoid Z Z Refl _ impossible
-compareTagsRightFRightFVoid Z (S _) Refl _ impossible
-compareTagsRightFRightFVoid (S _) Z _ Refl impossible
-compareTagsRightFRightFVoid (S x) (S y) prf prf1 with (compareTags x y) proof xr
-  compareTagsRightFRightFVoid (S _) (S _) Refl _ | (Left Refl) impossible
-  compareTagsRightFRightFVoid (S x) (S y) prf prf1 | (Right False) with (compareTags y x) proof yr
-    compareTagsRightFRightFVoid (S _) (S _) _ Refl | (Right False) | (Left Refl) impossible
-    compareTagsRightFRightFVoid (S x) (S y) prf prf1 | (Right False) | (Right False) = compareTagsRightFRightFVoid x y (sym xr) (sym yr)
-    compareTagsRightFRightFVoid (S _) (S _) _ Refl | (Right False) | (Right True) impossible
-  compareTagsRightFRightFVoid (S _) (S _) Refl _ | (Right True) impossible
+compareTagsRightFRightFVoid : {e, l, l2, v : _} -> (t : Tag l e) -> (t2 : Tag l2 e) -> (compareTags t t2 = Right v) -> (compareTags t2 t = Right v) -> Void
+compareTagsRightFRightFVoid {v = False} Z Z Refl _ impossible
+compareTagsRightFRightFVoid {v = False} Z (S _) Refl _ impossible
+compareTagsRightFRightFVoid {v = False} (S _) Z _ Refl impossible
+compareTagsRightFRightFVoid {v = False} (S x) (S y) prf prf1 with (compareTags x y) proof xleqy
+  compareTagsRightFRightFVoid {v = False} (S _) (S _) Refl _ | (Left Refl) impossible
+  compareTagsRightFRightFVoid {v = False} (S x) (S y) prf prf1 | (Right False) with (compareTags y x) proof yleqx
+    compareTagsRightFRightFVoid {v = False} (S _) (S _) _ Refl | (Right False) | (Left Refl) impossible
+    compareTagsRightFRightFVoid {v = False} (S x) (S y) prf prf1 | (Right False) | (Right False) = compareTagsRightFRightFVoid {v = False} x y (sym xleqy) (sym yleqx)
+    compareTagsRightFRightFVoid {v = False} (S _) (S _) _ Refl | (Right False) | (Right True) impossible
+  compareTagsRightFRightFVoid {v = False} (S _) (S _) Refl _ | (Right True) impossible
+compareTagsRightFRightFVoid {v = True} Z Z Refl _ impossible
+compareTagsRightFRightFVoid {v = True} Z (S _) _ Refl impossible
+compareTagsRightFRightFVoid {v = True} (S _) Z Refl _ impossible
+compareTagsRightFRightFVoid {v = True} (S x) (S y) prf prf1 with (compareTags x y) proof xleqy
+  compareTagsRightFRightFVoid {v = True} (S _) (S _) Refl _ | (Left Refl) impossible
+  compareTagsRightFRightFVoid {v = True} (S _) (S _) Refl _ | (Right False) impossible
+  compareTagsRightFRightFVoid {v = True} (S x) (S y) prf prf1 | (Right True) with (compareTags y x) proof yleqx
+    compareTagsRightFRightFVoid {v = True} (S _) (S _) _ Refl | (Right True) | (Left Refl) impossible
+    compareTagsRightFRightFVoid {v = True} (S _) (S _) _ Refl | (Right True) | (Right False) impossible
+    compareTagsRightFRightFVoid {v = True} (S x) (S y) prf prf1 | (Right True) | (Right True) = compareTagsRightFRightFVoid {v = True} x y (sym xleqy) (sym yleqx)
 
 mutual
   gleqdReflexive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d: Desc Ix) -> (constraints: Constraints SOrd d) -> {ix: Ix} -> (X: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints X X)
@@ -124,7 +134,6 @@ mutual
               gleqdTotal _ _ (Rec _ _) _ (_ ** _) (_ ** _) | True | True | False | False | (Right _) | Refl impossible
           gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | False | True = rewrite sym ra1leqra2 in rewrite sym r2leqr1 in Right Oh
         gleqdTotal dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) | True | True | True = Left Oh
-
   gleqTotal : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix: Ix} -> (X: TaggedData d ix) -> (Y: TaggedData d ix) -> Either (So (gleq d constraints X Y)) (So (gleq d constraints Y X))
   gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) with (compareTags t1 t2) proof t1leqt2
     gleqTotal d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) | (Left Refl) = rewrite compareTagsReflective t in gleqdTotal d constraints (d l t) (constraints l t) r1 r2
@@ -133,3 +142,41 @@ mutual
       gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right False) | (Right False) = void (compareTagsRightFRightFVoid t1 t2 (sym t1leqt2) (sym t2leqt1))
       gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right False) | (Right True) = Right Oh
     gleqTotal d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) | (Right True) = Left Oh
+
+mutual
+  gleqdAntisymmetricReflecive : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints SOrd dr) -> (d : Desc Ix) -> (constraints: Constraints SOrd d) -> {ix : Ix} -> (X: Synthesize d (TaggedData dr) ix) -> (Y: Synthesize d (TaggedData dr) ix) -> So (gleqd dr constraintsr d constraints X Y) -> So (gleqd dr constraintsr d constraints Y X) -> X = Y
+  gleqdAntisymmetricReflecive dr constraintsr (Ret ix) constraints Refl Refl xleqy yleqx = Refl
+  gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) xleqy yleqx with (choose (a1 <= a2))
+    gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) xleqy yleqx | (Left l) with (choose (a2 <= a1))
+      gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) xleqy yleqx | (Left l) | (Left x) with (leqAntisymmetricReflective {x = a1} {y = a2} l x)
+        gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl with (choose (gleqd dr constraintsr (kdesc a) (sordr a) r1 r2))
+          gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl | Left y with (choose (a <= a))
+            gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl | Left y | (Left z) with (leqAntisymmetricReflective {x = a} {y = a} x z)
+              gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl | Left y | (Left z) | Refl with (assert_total $ gleqdAntisymmetricReflecive dr constraintsr (kdesc a) (sordr a) r1 r2 xleqy yleqx)
+                gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r) (a ** r) xleqy yleqx | (Left l) | (Left x) | Refl | Left y | (Left z) | Refl | Refl = Refl
+            gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl | Left y | (Right r) = void (soNotSo x r)
+          gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a ** r1) (a ** r2) xleqy yleqx | (Left l) | (Left x) | Refl | Right y = void (soNotSo xleqy y)
+      gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) xleqy yleqx | (Left l) | (Right r) = case yleqx of Oh impossible
+    gleqdAntisymmetricReflecive dr constraintsr (Arg A kdesc) (sorda, sordr) (a1 ** r1) (a2 ** r2) xleqy yleqx | (Right r) = case xleqy of Oh impossible
+  gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx with (gleq dr constraintsr ra1 ra2) proof ra1leqra2
+    gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | True with (gleq dr constraintsr ra2 ra1) proof ra2leqra1
+      gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | True | False = case yleqx of Oh impossible
+      gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | True | True with (gleq dr constraintsr ra1 ra2) proof ra1leqra2'
+        gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | True | True | False = case ra1leqra2 of Refl impossible
+        gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | True | True | True with (assert_total $ gleqdAntisymmetricReflecive dr constraintsr kdesc constraints r1 r2 xleqy yleqx)
+          gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r2) (ra2 ** r2) xleqy yleqx | True | True | True | Refl with (gleqAntisymmetricReflecive dr constraintsr ra1 ra2 (eqToSo $ sym ra1leqra2') (eqToSo $ sym ra2leqra1))
+            gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra ** r) (ra ** r) xleqy yleqx | True | True | True | Refl | Refl = Refl
+
+    gleqdAntisymmetricReflecive dr constraintsr (Rec ix kdesc) constraints (ra1 ** r1) (ra2 ** r2) xleqy yleqx | False = case xleqy of Oh impossible
+  gleqAntisymmetricReflecive : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints SOrd d) -> {ix : Ix} -> (X: TaggedData d ix) -> (Y: TaggedData d ix) -> So (gleq d constraints X Y) -> So (gleq d constraints Y X) -> X = Y
+  gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx with (compareTags t1 t2) proof t1leqt2
+    gleqAntisymmetricReflecive d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) xleqy yleqx | (Left Refl) with (compareTags t t) proof tleqt
+      gleqAntisymmetricReflecive d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) xleqy yleqx | (Left Refl) | (Left Refl) with (assert_total $ gleqdAntisymmetricReflecive d constraints (d l t) (constraints l t) r1 r2 xleqy yleqx)
+        gleqAntisymmetricReflecive d constraints (Con (l ** t ** r)) (Con (l ** t ** r)) xleqy yleqx | (Left Refl) | (Left Refl) | Refl = Refl
+      gleqAntisymmetricReflecive d constraints (Con (l ** t ** r1)) (Con (l ** t ** r2)) xleqy yleqx | (Left Refl) | (Right r) = case t1leqt2 of Refl impossible
+    gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right False) = case xleqy of Oh impossible
+    gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right True) with (compareTags t2 t1) proof t2leqt1
+      gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l1 ** t1 ** r2)) xleqy yleqx | (Right True) | (Left Refl) = case trans t1leqt2 (sym t2leqt1) of Refl impossible
+      gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right True) | (Right False) = case yleqx of Oh impossible
+      gleqAntisymmetricReflecive d constraints (Con (l1 ** t1 ** r1)) (Con (l2 ** t2 ** r2)) xleqy yleqx | (Right True) | (Right True) =
+          void (compareTagsRightFRightFVoid t1 t2 (sym t1leqt2) (sym t2leqt1))
