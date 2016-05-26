@@ -146,9 +146,18 @@ PData : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) (Ix -> Type)
 PData {n = Z} x = Data (PDescToDesc x)
 PData {n = (S k)} x = \a => PData (PUnfold x a)
 
+PTaggedDesc : (e: CtorEnum) -> (n : Nat) -> (Ix : Type) -> Type
+PTaggedDesc e n Ix = (l : CtorLabel) -> Tag l e -> PDesc n Ix
+
+PUntag : {e, n, Ix : _} -> PTaggedDesc e n Ix -> PDesc n Ix
+PUntag {e} d = PArg CtorLabel (\l => PArg (Tag l e) (\t => d l t))
+
 ||| A version of `Data` for tagged descriptions.
 TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
 TaggedData d = Data (Untag d)
+
+PTaggedData : {Ix,n: _} -> {e: CtorEnum} -> PTaggedDesc e n Ix -> FunTy (replicate n Type) (Ix -> Type)
+PTaggedData d = PData (PUntag d)
 
 Constraints : {Ix: _} -> (Interface: Type -> Type) -> (d: Desc Ix) -> Type
 Constraints Interface (Ret ix) = Unit
@@ -164,3 +173,6 @@ PConstraints1 Interface (PArg A kdesc) = (a : A) -> PConstraints1 Interface (kde
 PConstraints1 Interface (PPar k kdesc) = PConstraints1 Interface kdesc
 PConstraints1 Interface (PMap f k kdesc) = (Interface f, PConstraints1 Interface kdesc)
 PConstraints1 Interface (PRec ix kdesc) = PConstraints1 Interface kdesc
+
+PTaggedConstraints1 : {e, Ix: _} -> (Interface : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) Ix) -> Type
+PTaggedConstraints1 {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 Interface (td l t)
