@@ -2,12 +2,10 @@ module Interfaces
 
 import public Data.So
 import public Syntax.PreorderReasoning
+import public Helper
 
 %default total
 %access public export
-
-postulate -- HOPEFULLY NOTHING GOES WRONG
-   funext : {a,b : Type} -> {f, g : a -> b} -> ((x : a) -> f x = g x) -> f = g
 
 interface Eq a => VEq a where
   eqReflexive  : {x : a} -> So (x == x)

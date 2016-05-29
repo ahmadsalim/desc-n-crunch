@@ -54,3 +54,15 @@ soOrSo {a} {b} soor with (choose a)
   soOrSo {a = False} {b = b} soor | (Left Oh) impossible
   soOrSo {a = False} {b = b} soor | (Right Oh) = Right soor
   soOrSo {a = True} {b = b} soor | (Right Oh) impossible
+
+public export
+dpairEq : {a: Type} -> {P: a -> Type} -> {x, x' : a} -> {y : P x} -> {y' : P x'} -> (p : x = x') -> y = y' -> (x ** y) = (x' ** y')
+dpairEq Refl Refl = Refl
+
+postulate -- HOPEFULLY NOTHING GOES WRONG
+  public export
+  funext : {a,b : Type} -> {f, g : a -> b} -> ((x : a) -> f x = g x) -> f = g
+
+public export
+fundet : {a, b : Type} -> {f, g : a -> b} -> f = g -> (x : a) -> f x = g x
+fundet {f = f} {g = f} Refl x = Refl
