@@ -12,10 +12,10 @@ using (g: Type -> Type)
           zipD x y = (x ** y)
 
   mutual
-    gtraversed : Applicative g => {a,b,e,Ix: _} -> (dr: PTaggedDesc e (S Z) Ix) -> (PTaggedConstraints1 Traversable dr)
+    gtraversed : Applicative g => {a,b,Ix: _} -> (dr: PDesc (S Z) Ix) -> (PConstraints1 Traversable dr)
                                               -> (d: PDesc (S Z) Ix) -> (PConstraints1 Traversable d) -> {ix : Ix}
-                                              -> (k : g (PSynthesize d b (PTaggedData dr b) ix) -> g (PTaggedData dr b ix))
-                                              -> (a -> g b) -> PSynthesize d a (PTaggedData dr a) ix -> g (PTaggedData dr b ix)
+                                              -> (k : g (PSynthesize d b (PData dr b) ix) -> g (PData dr b ix))
+                                              -> (a -> g b) -> PSynthesize d a (PData dr a) ix -> g (PData dr b ix)
     gtraversed dr constraintsr (PRet ix) constraints k f Refl = k (pure Refl)
     gtraversed dr constraintsr (PArg A kdesc) constraints k f (arg ** rest) =
      gtraversed dr constraintsr (kdesc arg) (constraints arg) (\idm => k (MkDPair arg <$> idm)) f rest
@@ -30,6 +30,6 @@ using (g: Type -> Type)
     gtraversed dr constraintsr (PRec ix kdesc) constraints k f (rec ** rest) =
       gtraversed dr constraintsr kdesc constraints (\idm => k (zipA (gtraverse dr constraintsr f rec) idm)) f rest
 
-    gtraverse  : Applicative g => {a,b,e, Ix: _} -> (d: PTaggedDesc e (S Z) Ix) -> (PTaggedConstraints1 Traversable d) -> {ix : Ix}
-                                              -> (a -> g b) -> PTaggedData d a ix -> g (PTaggedData d b ix)
-    gtraverse d constraints f (Con (l ** t ** r)) = assert_total $ gtraversed d constraints (d l t) (constraints l t) ((\gr => Con (l ** t ** gr)) <$>) f r
+    gtraverse  : Applicative g => {a,b,Ix: _} -> (d: PDesc (S Z) Ix) -> (PConstraints1 Traversable d) -> {ix : Ix}
+                                              -> (a -> g b) -> PData d a ix -> g (PData d b ix)
+    gtraverse d constraints f (Con x) = assert_total $ gtraversed d constraints d constraints (Con <$>) f x
