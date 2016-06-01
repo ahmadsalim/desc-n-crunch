@@ -34,6 +34,7 @@ interface (Applicative f) => VApplicative (f : Type -> Type) where
   applicativeCompose : {a,b,c : Type} -> {u : f (b -> c)} -> {v : f (a -> b)} -> {w : f a} -> pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
   applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> the (f b) $ pure g <*> pure x = pure (g x)
   applicativeInterchange : {a,b : Type} -> {u : f (a -> b)} -> {y : a} -> u <*> pure y = pure (\g => g y) <*> u
+  applicativeMap : {a, b : Type} -> {u : a -> b} -> map {f = f} u = (\x => pure {f = f} u <*> x)
 
 interface (VApplicative f, VApplicative g) => VApplicativeTransformer (f : Type -> Type) (g : Type -> Type) where
   transformA : {a: Type} -> f a -> g a
@@ -61,6 +62,7 @@ implementation VApplicative Identity where
   applicativeCompose {u = MkIdentity u'} {v = MkIdentity v'} {w = MkIdentity w'} = Refl
   applicativeHomomorphism = Refl
   applicativeInterchange {u = MkIdentity u'} = Refl
+  applicativeMap = ?p
 
 using (f : Type -> Type, g : Type -> Type, a : Type)
   record Compose (f : Type -> Type) (g : Type -> Type) a where
@@ -129,6 +131,7 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure (<*>) <*> (pure (pure (\h => h y))) <*> u'))
         ={ Refl }=
       (MkCompose (pure (pure (\h => h y))) <*> MkCompose u') QED
+    applicativeMap = ?p
 
 using (t : Type -> Type)
   interface (Traversable t) => VTraversable (t : Type -> Type) where
