@@ -40,10 +40,15 @@ CtorLabel = TTName
 CtorEnum : Type
 CtorEnum = List CtorLabel
 
+enumSize : CtorEnum -> Nat
+enumSize = length
+
 ||| A `Tag` selects a specific label from a label set
 data Tag : CtorLabel -> CtorEnum -> Type where
   Z : {l, e: _}    ->  Tag l (l :: e)
   S : {l, l', e: _} -> Tag l e -> Tag l (l' :: e)
+
+%name Tag t, t'
 
 implementation Uninhabited (Tag _ []) where
   uninhabited Z impossible
