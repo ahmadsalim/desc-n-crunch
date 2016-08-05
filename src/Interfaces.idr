@@ -29,12 +29,12 @@ interface Functor f => VFunctor (f : Type -> Type) where
   mapCompose : {a,b,c : Type} -> {g : b -> c} -> {h : a -> b} -> map {f = f} (g . h) = map g . map h
 
 
-interface (Applicative f) => VApplicative (f : Type -> Type) where
+interface (Applicative f, VFunctor f) => VApplicative (f : Type -> Type) where
   applicativeId : {a : Type} -> {v : f a} -> pure Basics.id <*> v = v
   applicativeCompose : {a,b,c : Type} -> {u : f (b -> c)} -> {v : f (a -> b)} -> {w : f a} -> pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
-  applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> the (f b) $ pure g <*> pure x = pure (g x)
+  applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> (<*>) {f = f} (pure g) (pure x) = pure {f = f} (g x)
   applicativeInterchange : {a,b : Type} -> {u : f (a -> b)} -> {y : a} -> u <*> pure y = pure (\g => g y) <*> u
-  applicativeMap : {a, b : Type} -> {u : a -> b} -> map {f = f} u = (\x => pure {f = f} u <*> x)
+  applicativeMap : {a, b : Type} -> {u : a -> b} -> map {f = f} u = (<*>) (pure {f = f} u)
 
 interface (VApplicative f, VApplicative g) => VApplicativeTransformer (f : Type -> Type) (g : Type -> Type) where
   transformA : {a: Type} -> f a -> g a
