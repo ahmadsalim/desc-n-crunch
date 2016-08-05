@@ -118,12 +118,12 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
             let n = paramCount tcArgs
             i <- mkFin which n
             indices <- getIndices tyn tcArgs cRes
-            pure `(PPar {n=~(quote n)} {Ix=~(prod (map snd indices))} ~rest)
+            pure `(PPar {n=~(quote n)} {Ix=~(prod (map snd indices))} ~i ~rest)
        CtorField arg =>
          -- A field can be either a transformed parameter, a recursive
          -- instantiation, or an ordinary argument.
          if containsParam paramsSoFar (type arg)
-           then fail [TextPart "Not done yet!"]
+           then debugMessage [TextPart "Not done yet!", TextPart (show arg)]
            else
              if isRec tyn (type arg)
                then
@@ -147,5 +147,18 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
                                         (Lam (type arg))
                                         rest))
 
+s : PDesc 0 ()
+s = %runElab (do fill !(mkDesc `{Nat} [] [] (`{Nat.S}, [CtorField $ MkFunArg `{{n}} `(Nat) Explicit NotErased], `(Nat)))
+                 solve)
 
+z : PDesc 0 ()
+z = %runElab (do fill !(mkDesc `{Nat} [] [] (`{Nat.Z}, [], `(Nat)))
+                 solve)
 
+nil : PDesc 1 ()
+nil = %runElab (do fill !(mkDesc `{List} [] [ TyConParameter $ MkFunArg `{{a}} `(Type) Implicit Erased] (`{List.Nil}, [CtorParameter $ MkFunArg `{{a}} `(Type) Implicit Erased], `(List ~(Var `{{a}}))))
+                   solve)
+
+cons : PDesc 1 ()
+cons = %runElab (do fill !(mkDesc `{List} [] [ TyConParameter $ MkFunArg `{{a}} `(Type) Implicit Erased] (`{List.(::)}, [CtorParameter $ MkFunArg `{{a}} `(Type) Implicit Erased, CtorField $ MkFunArg `{{x}} (Var `{{a}}) Explicit NotErased, CtorField $ MkFunArg `{{xs}} `(List ~(Var `{{a}})) Explicit NotErased], `(List ~(Var `{{a}}))))
+                    solve)
