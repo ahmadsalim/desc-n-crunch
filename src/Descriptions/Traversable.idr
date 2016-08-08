@@ -106,12 +106,45 @@ using (f: Type -> Type, g: Type -> Type)
      gtraversabledCompositionH {a = a} {f = f} {g = g} {ix = ix} dr constraintsr (PRet ix) constraints h i Refl | prf =
        replace {P = \r => MkCompose (pure {f = f} (pure {f = g} {a = (ix = ix)} Refl)) = MkCompose (r (pure Refl)) } (sym prf)
         (replace {P = \r => MkCompose (pure {f = f} (pure {f = g} {a = (ix = ix)} Refl)) = MkCompose r } (sym (applicativeHomomorphism {f = f} {g = gtraversed dr constraintsr (PRet ix) constraints i} {x = Refl} )) Refl)
-   gtraversabledCompositionH dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) = ?gtraversabledCompositionH_rhs_2
+   gtraversabledCompositionH {c = c} {f = f} {g = g} {ix = ix} dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) with (gtraversabledCompositionH dr constraintsr (kdesc arg) (constraints arg) h i rest)
+     gtraversabledCompositionH {c = c} {f = f} {g = g} {ix = ix} dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) | prf =
+       replace {P = \r => (MkCompose {f = f} {g = g} (pure (pure (MkDPair {P = \arg => PSynthesize (kdesc arg) c (PData dr c) ix } arg)))) <*> r =
+                              MkCompose (map {f = f} (gtraversed {g = g} dr constraintsr (PArg A kdesc) constraints i) (pure (MkDPair arg) <*>
+                                          (gtraversed dr constraintsr (kdesc arg) (constraints arg) h rest)))} (sym prf) (
+          (MkCompose {f = f} {g = g} (pure (<*>) <*>
+                                            pure (pure (MkDPair arg)) <*>
+                                                   map (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                                                        (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)))
+            ={ cong {f = \r => MkCompose (r <*> (map (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                    (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest))) } applicativeHomomorphism }=
+          (MkCompose {f = f} {g = g} (pure ((pure (MkDPair arg)) <*>) <*>
+                                                    map (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                                                    (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)))
+            ={ cong {f = \r => MkCompose (r ( map (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                    (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest) ))  } (sym applicativeMap) }=
+          (MkCompose {f = f} {g = g} (map ((pure (MkDPair arg)) <*>) (
+                                                    map (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                                                    (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest))))
+
+            ={ cong {f = MkCompose} (fundet (sym mapCompose) (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)) }=
+          (MkCompose {f = f} {g = g} (map ( ((pure (MkDPair arg)) <*>) . gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) i)
+                                                    (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)))
+            ={ Refl }=
+          (MkCompose {f = f} {g = g} (map (gtraversed {ix = ix} dr constraintsr (PArg A kdesc) constraints i . MkDPair arg)
+                                          (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)))
+            ={ cong {f = MkCompose} (fundet mapCompose (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest) ) }=
+          (MkCompose {f = f} {g = g} (map (gtraversed {ix = ix} dr constraintsr (PArg A kdesc) constraints i)
+                                      (map (MkDPair arg) (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest))))
+            ={ cong {f = (\r => MkCompose ((map (gtraversed {ix = ix} dr constraintsr (PArg A kdesc) constraints i) (r (gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)) ))) } applicativeMap }=
+          (MkCompose {f = f} {g = g} (map (gtraversed {ix = ix} dr constraintsr (PArg A kdesc) constraints i)
+                                      (pure (MkDPair arg) <*> gtraversed {ix = ix} dr constraintsr (kdesc arg) (constraints arg) h rest)))
+            QED)
    gtraversabledCompositionH dr constraintsr (PPar FZ kdesc) constraints h i X = ?gtraversabledCompositionH_rhs_1
    gtraversabledCompositionH _ _ (PPar (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PPar (FS (FS _)) _) _ _ _ _ impossible
    gtraversabledCompositionH dr constraintsr (PMap f FZ kdesc) constraints h i X = ?gtraversabledCompositionH_rhs_3
-   gtraversabledCompositionH dr constraintsr (PMap f (FS x) kdesc) constraints h i X = ?gtraversabledCompositionH_rhs_6
+   gtraversabledCompositionH _ _ (PMap _ (FS FZ) _) _ _ _ _ impossible
+   gtraversabledCompositionH _ _ (PMap _ (FS (FS _)) _) _ _ _ _ impossible
    gtraversabledCompositionH dr constraintsr (PRec ix kdesc) constraints h i X = ?gtraversabledCompositionH_rhs_5
 
    gtraversableCompositionH :(VApplicative f, VApplicative g) => {a,b,c,Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d)
