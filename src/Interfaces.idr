@@ -105,7 +105,34 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure id <*> x'))
          ={ cong {f = MkCompose} (applicativeId {f = f} {v = x'}) }=
       (MkCompose x') QED
-    applicativeCompose {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} = ?p
+    applicativeCompose {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} =
+      (MkCompose (pure (<*>) <*>
+                   (pure (<*>) <*>
+                     (pure (<*>) <*> pure (pure (.)) <*> u') <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (pure (<*>) <*>
+                    (pure (<*>) <*>
+                      (pure ((pure (.)) <*>) <*> u') <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (pure (<*>) <*>
+                    (pure (<*>) <*>
+                      (map ((pure (.)) <*>) u') <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (pure (<*>) <*>
+                    (map (<*>) (map ((pure (.)) <*>) u') <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (map (<*>) (map (<*>) (map ((pure (.)) <*>) u') <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (map (<*>) (map ((<*>) . ((pure (.)) <*>)) u' <*> v') <*> w') )
+        ={ Refl }=
+      (MkCompose (map (<*>) (map (\x, y => (pure (.)) <*> x <*> y) u' <*> v') <*> w') )
+        ={ ?p }=
+      (MkCompose (map (<*>) u' <*> (map (<*>) v' <*> w')))
+        ={ ?p }=
+      (MkCompose (map (<*>) u' <*> (pure (<*>) <*> v' <*> w')))
+        ={ ?p }=
+      (MkCompose (pure (<*>) <*> u' <*> (pure (<*>) <*> v' <*> w')))
+        QED
     applicativeHomomorphism {f = f} {g = g} {g1 = h} {x = x} =
       (MkCompose (pure (<*>) <*> pure (pure h) <*> pure (pure x)))
         ={ cong {f = MkCompose} (cong {f = \w => w <*> pure {f = f} (pure {f = g} x)} (applicativeHomomorphism {f = f})) }=
