@@ -9,10 +9,11 @@ import Syntax.PreorderReasoning
 %auto_implicits off
 
 using (f: Type -> Type, g: Type -> Type)
+  zipD : {a, b : _} -> a -> b -> (x : a ** b)
+  zipD x y = (x ** y)
+
   zipA : Applicative g => {a, b: _} -> g a -> g b -> g (x : a ** b)
   zipA {a} {b} x y = zipD <$> x <*> y
-    where zipD : a -> b -> (x : a ** b)
-          zipD x y = (x ** y)
 
   mutual
     gtraversed : Applicative g => {a,b,Ix: _} -> (dr: PDesc (S Z) Ix) -> (constraintsr: PConstraints1 VTraversable dr)
@@ -107,7 +108,7 @@ using (f: Type -> Type, g: Type -> Type)
        replace {P = \r => MkCompose (pure {f = f} (pure {f = g} {a = (ix = ix)} Refl)) = MkCompose (r (pure Refl)) } (sym prf)
         (replace {P = \r => MkCompose (pure {f = f} (pure {f = g} {a = (ix = ix)} Refl)) = MkCompose r } (sym (applicativeHomomorphism {f = f} {g = gtraversed dr constraintsr (PRet ix) constraints i} {x = Refl} )) Refl)
    gtraversabledCompositionH {c = c} {f = f} {g = g} {ix = ix} dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) with (gtraversabledCompositionH dr constraintsr (kdesc arg) (constraints arg) h i rest)
-     gtraversabledCompositionH {c = c} {f = f} {g = g} {ix = ix} dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) | prf = ?p
+     gtraversabledCompositionH {c = c} {f = f} {g = g} {ix = ix} dr constraintsr (PArg A kdesc) constraints h i (arg ** rest) | prf = ?admit
       {- replace {P = \r => (MkCompose {f = f} {g = g} (pure (pure (MkDPair {P = \arg => PSynthesize (kdesc arg) c (PData dr c) ix } arg)))) <*> r =
                               MkCompose (map {f = f} (gtraversed {g = g} dr constraintsr (PArg A kdesc) constraints i) (pure (MkDPair arg) <*>
                                           (gtraversed dr constraintsr (kdesc arg) (constraints arg) h rest)))} (sym prf) (
