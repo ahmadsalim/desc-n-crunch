@@ -51,6 +51,6 @@ mutual
 
   gdecEq : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints DecEq d)
               -> {ix : Ix} -> (X, Y : TaggedData d ix) -> Dec (X = Y)
-  gdecEq d constraints (Con dtx) (Con dty) with (gdecEqd d constraints (Untag d) (%instance, \l => (%instance, \t => constraints l t)) dtx dty)
+  gdecEq d constraints (Con dtx) (Con dty) with (gdecEqd d constraints (Untag d) (%implementation, \l => (%implementation, \t => constraints l t)) dtx dty)
     gdecEq d constraints (Con dt) (Con dt) | (Yes Refl) = Yes Refl
     gdecEq d constraints (Con dtx) (Con dty) | (No contra) = No (contra . lemma_DataConInjective)

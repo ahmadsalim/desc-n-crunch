@@ -36,7 +36,28 @@ exampleVec = Cons "Hello" (Cons "World" Nil)
 exampleVec' : Vec String 2
 exampleVec' = Cons "World" (Cons "Hello" Nil)
 
+SoDesc : Desc Bool
+SoDesc = Ret True
 
+twoplustwoeq4 : Data SoDesc (2 + 2 == 4)
+twoplustwoeq4 = Con Refl
+
+twoplustwoeq5 : Not (Data SoDesc (2 + 2 == 5))
+twoplustwoeq5 (Con Refl) impossible
+
+PointDesc : Desc Unit
+PointDesc = Arg Int (\x => Arg Int (\y => Ret ()))
+
+origo : Data PointDesc ()
+origo = Con (0 ** 0 ** Refl)
+
+NatDesc' : TaggedDesc [`{{Z}}, `{{S}}] Unit
+NatDesc' _ Z     = Ret ()
+NatDesc' _ (S Z) = Rec () (Ret ())
+NatDesc' _ (S (S x)) = absurd x
+
+nat2 : Data (Untag NatDesc') ()
+nat2 = Con (`{{S}} ** S Z ** Con (`{{S}} ** S Z ** Con (`{{Z}} ** Z ** Refl) ** Refl) ** Refl)
 
 {-
 VecShowConstraints : {A : Type} -> (Show A) => TaggedConstraints Show (VecDesc A)

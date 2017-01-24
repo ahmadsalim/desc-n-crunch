@@ -34,5 +34,5 @@ mutual
                     -> {ix : Ix} -> (X : TaggedData d ix) -> String
   gshow d constraints (Con (label ** (tag ** rest))) =
     let constraints' = constraints label tag
-    in let showrest = assert_total $ gshowd d constraints (d label tag) constraints' rest
+        showrest = assert_total $ gshowd d constraints (d label tag) constraints' rest
     in showLabel label ++ showrest
