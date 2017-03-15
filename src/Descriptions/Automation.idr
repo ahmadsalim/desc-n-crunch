@@ -4,6 +4,8 @@ import Language.Reflection.Utils
 import Descriptions.Core
 import Pruviloj
 
+%language ElabReflection
+
 ctorTags : TTName -> Elab (List TTName)
 ctorTags datatype =
   do ctors <- constructors <$> lookupDatatypeExact datatype
@@ -36,7 +38,7 @@ getIndices tyN tcArgs tm =
      -- Sanity check
      case op of
        Var n => if n == tyN
-                  then return ()
+                  then pure ()
                   else fail [TextPart "Wrong datatype: ", NamePart n]
        other => fail [TextPart "Not a datatype application"]
      getArgs args tcArgs
