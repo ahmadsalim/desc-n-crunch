@@ -6,6 +6,8 @@ import Descriptions.DecEq
 import Descriptions.Functor
 import Control.Isomorphism
 
+%language ElabReflection
+
 ---- Examples
 VecCtors : CtorEnum
 VecCtors = [ `{Vect.Nil} , `{Vect.(::)} ]

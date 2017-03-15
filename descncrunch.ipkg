@@ -3,7 +3,8 @@ package descncrunch
 sourcedir = src
 pkgs = pruviloj
 
-modules = Descriptions.Core
+modules = Descriptions.Automation
+        , Descriptions.Core
         , Descriptions.DecEq
         , Descriptions.Eq
         , Descriptions.Examples
