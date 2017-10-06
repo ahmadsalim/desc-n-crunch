@@ -61,10 +61,9 @@ implementation Uninhabited (Tag _ []) where
 |||```
 ||| @ choices A list of values with the same size as the input set of labels, so there is a value for each label
 ||| @ tag The selected label
-switch : {l,e,a: _} -> (choices: Vect (length e) a) -> (tag: Tag l e) -> a
-switch {e = l :: ls} [] _ impossible
-switch (c :: cs) Z = c
-switch (c :: cs) (S t) = switch cs t
+switch : {l,a: _} -> {e : CtorEnum} -> (choices: Vect (length e) a) -> (tag: Tag l e) -> a
+switch {e = _ :: _} (c :: cs) Z = c
+switch {e = _ :: _} (c :: cs) (S t) = switch cs t
 
 ||| A set of constructors, tagged by their names, is a function from
 ||| labels in the name set to data descriptions.
