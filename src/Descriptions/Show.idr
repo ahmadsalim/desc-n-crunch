@@ -19,8 +19,9 @@ showLabel (SN _) = "{{SN}}"
 
 mutual
   gshowd : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints Show dr)
-    -> (d: Desc Ix) -> (constraints: Constraints Show d)
-    -> {ix: Ix} -> (synth: Synthesize d (TaggedData dr) ix) -> String
+                      -> (d: Desc Ix) -> (constraints: Constraints Show d)
+                      -> {ix: Ix} -> (synth: Synthesize d (TaggedData dr) ix)
+                      -> String
   gshowd _  _            (Ret _) () Refl = ""
   gshowd dr constraintsr (Arg _ kdesc) (showa, showkdesc) (arg ** rest) =
     " " ++ parenthesize (show @{showa} arg)

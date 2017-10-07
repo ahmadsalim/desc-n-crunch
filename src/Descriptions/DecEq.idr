@@ -28,8 +28,9 @@ lemma_DataConInjective Refl = Refl
 
 mutual
   gdecEqd : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints DecEq dr)
-    -> (d: Desc Ix) -> (constraints: Constraints DecEq d)
-    -> {ix: Ix} -> (synthX, synthY: Synthesize d (TaggedData dr) ix) -> Dec (synthX = synthY)
+                       -> (d: Desc Ix) -> (constraints: Constraints DecEq d)
+                       -> {ix: Ix} -> (synthX, synthY: Synthesize d (TaggedData dr) ix)
+                       -> Dec (synthX = synthY)
   gdecEqd _ _ (Ret _) () Refl Refl = Yes Refl
   gdecEqd dr constraintsr (Arg _ kdesc) (decEqa, decEqkdesc) (arg1 ** rest1) (arg2 ** rest2)
    with (decEq @{decEqa} arg1 arg2)
@@ -47,7 +48,7 @@ mutual
     gdecEqd _ _ _ _ _ _ | No contra = No (contra . dpairFstInjective)
 
   gdecEq : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints DecEq d)
-              -> {ix : Ix} -> (X, Y : TaggedData d ix) -> Dec (X = Y)
+                      -> {ix : Ix} -> (X, Y : TaggedData d ix) -> Dec (X = Y)
   gdecEq d constraints (Con dtx) (Con dty) with (gdecEqd d constraints (Untag d) (%implementation, \l => (%implementation, \t => constraints l t)) dtx dty)
     gdecEq _ _ (Con dt) (Con dt) | Yes Refl  = Yes Refl
     gdecEq _ _ (Con _)  (Con _)  | No contra = No (contra . lemma_DataConInjective)
