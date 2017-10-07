@@ -50,14 +50,22 @@ soAndSo {a} {b} soand with (choose a)
 public export
 soOrSo : So (a || b) -> Either (So a) (So b)
 soOrSo {a} {b} soor with (choose a)
-  soOrSo {a = True}  soor | Left Oh = Left Oh
-  soOrSo {a = False} soor | Left Oh impossible
+  soOrSo {a = True}  _    | Left Oh = Left Oh
+  soOrSo {a = False} _    | Left Oh impossible
   soOrSo {a = False} soor | Right Oh = Right soor
-  soOrSo {a = True}  soor | Right Oh impossible
+  soOrSo {a = True}  _    | Right Oh impossible
 
 public export
 dpairEq : {a: Type} -> {P: a -> Type} -> {x, x' : a} -> {y : P x} -> {y' : P x'} -> (p : x = x') -> y = y' -> (x ** y) = (x' ** y')
 dpairEq Refl Refl = Refl
+
+public export
+dpairFstInjective : {x,y,xs,ys: _} -> (x ** xs) = (y ** ys) -> x = y
+dpairFstInjective Refl = Refl
+
+public export
+dpairSndInjective : {x,y,xs,ys: _} -> (x ** xs) = (y ** ys) -> xs = ys
+dpairSndInjective Refl = Refl
 
 postulate -- HOPEFULLY NOTHING GOES WRONG
   public export
