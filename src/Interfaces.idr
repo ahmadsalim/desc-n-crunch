@@ -25,16 +25,16 @@ interface VOrd a => SOrd a where
   leqAntisymmetricReflective : {x, y: a} -> So (x <= y) -> So (y <= x) -> x = y
 
 interface Functor f => VFunctor (f : Type -> Type) where
-  mapId      : {a : Type} -> map (id {a = a}) = id {a = f a}
-  mapCompose : {a,b,c : Type} -> {g : b -> c} -> {h : a -> b} -> map {f = f} (g . h) = map g . map h
+  mapId      : {a : Type} -> map (id {a}) = id {a = f a}
+  mapCompose : {a,b,c : Type} -> {g : b -> c} -> {h : a -> b} -> map {f} (g . h) = map g . map h
 
 
 interface (Applicative f, VFunctor f) => VApplicative (f : Type -> Type) where
   applicativeId : {a : Type} -> {v : f a} -> pure Basics.id <*> v = v
   applicativeCompose : {a,b,c : Type} -> {u : f (b -> c)} -> {v : f (a -> b)} -> {w : f a} -> pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
-  applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> (<*>) {f = f} (pure g) (pure x) = pure {f = f} (g x)
+  applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> (<*>) {f} (pure g) (pure x) = pure {f} (g x)
   applicativeInterchange : {a,b : Type} -> {u : f (a -> b)} -> {y : a} -> u <*> pure y = pure (\g => g y) <*> u
-  applicativeMap : {a, b : Type} -> {u : a -> b} -> map {f = f} u = (<*>) (pure {f = f} u)
+  applicativeMap : {a, b : Type} -> {u : a -> b} -> map {f} u = (<*>) (pure {f} u)
 
 interface (VApplicative f, VApplicative g) => VApplicativeTransformer (f : Type -> Type) (g : Type -> Type) where
   transformA : {a: Type} -> f a -> g a
@@ -50,19 +50,19 @@ implementation Functor Identity where
   map f (MkIdentity x) = MkIdentity (f x)
 
 implementation VFunctor Identity where
-  mapId = funext (\(MkIdentity x) => Refl)
-  mapCompose = funext (\(MkIdentity x) => Refl)
+  mapId = funext (\(MkIdentity _) => Refl)
+  mapCompose = funext (\(MkIdentity _) => Refl)
 
 implementation Applicative Identity where
   pure = MkIdentity
   (MkIdentity f) <*> (MkIdentity x) = MkIdentity (f x)
 
 implementation VApplicative Identity where
-  applicativeId {v = MkIdentity x} = Refl
-  applicativeCompose {u = MkIdentity u'} {v = MkIdentity v'} {w = MkIdentity w'} = Refl
+  applicativeId {v = MkIdentity _} = Refl
+  applicativeCompose {u = MkIdentity _} {v = MkIdentity _} {w = MkIdentity _} = Refl
   applicativeHomomorphism = Refl
-  applicativeInterchange {u = MkIdentity u'} = Refl
-  applicativeMap = funext (\(MkIdentity u) => Refl)
+  applicativeInterchange {u = MkIdentity _} = Refl
+  applicativeMap = funext (\(MkIdentity _) => Refl)
 
 using (f : Type -> Type, g : Type -> Type, a : Type)
   record Compose (f : Type -> Type) (g : Type -> Type) a where
@@ -75,16 +75,21 @@ using (f : Type -> Type, g : Type -> Type)
 
 
   implementation (VFunctor f, VFunctor g) => VFunctor (Compose f g) where
-    mapId {a = a} {f = f} {g = g} =
+    mapId {a} {f} {g} =
       funext (\(MkCompose x) =>
-        (MkCompose (map (map id) x)) ={ cong {f = MkCompose} (replace {P = \w => map w x = map id x} (sym $ mapId {f = g}) Refl)}=
-        (MkCompose (map id x)) ={ cong {f = MkCompose} (replace {P = \w => w x = x} (sym $ mapId {f = f}) Refl) }=
+        (MkCompose (map (map id) x))
+           ={ cong {f = MkCompose} (replace {P = \w => map w x = map id x} (sym $ mapId {f = g}) Refl)}=
+        (MkCompose (map id x))
+           ={ cong {f = MkCompose} (replace {P = \w => w x = x} (sym $ mapId {f}) Refl) }=
         (MkCompose x) QED)
-    mapCompose {a = a} {f = f} {g = g} {g1 = gg} {h = h} =
+    mapCompose {a} {f} {g} {g1 = gg} {h} =
       funext (\(MkCompose x) =>
-        (MkCompose (map (map (gg . h)) x)) ={ cong {f = MkCompose} (replace {P = \w => map (map (gg . h)) x = map w x} (mapCompose {f = g} {g = gg} {h = h}) Refl) }=
-        (MkCompose (map (map gg . map h) x)) ={ cong {f = MkCompose} (replace {P = \w => map (map gg . map h) x = w x} (mapCompose {f = f}) Refl) }=
-        (MkCompose ((map (map gg)) . (map (map h)) $ x)) ={ cong {f = MkCompose} Refl }=
+        (MkCompose (map (map (gg . h)) x))
+           ={ cong {f = MkCompose} (replace {P = \w => map (map (gg . h)) x = map w x} (mapCompose {f = g} {g = gg} {h}) Refl) }=
+        (MkCompose (map (map gg . map h) x))
+           ={ cong {f = MkCompose} (replace {P = \w => map (map gg . map h) x = w x} (mapCompose {f}) Refl) }=
+        (MkCompose ((map (map gg)) . (map (map h)) $ x))
+           ={ cong {f = MkCompose} Refl }=
         (MkCompose (map (map gg) (map (map h) x))) QED)
 
   implementation (Applicative f, Applicative g) => Applicative (Compose f g) where
@@ -95,7 +100,7 @@ using (f : Type -> Type, g : Type -> Type)
     applicativeId {v = MkCompose x'} =
       (MkCompose (pure (<*>) <*> (pure (pure id)) <*> x'))
          ={ cong {f = MkCompose} (replace {P = \w => w <*> x' = pure (\x => pure id <*> x) <*> x'}
-                 (sym $ applicativeHomomorphism {f = f} {g = (<*>)} {x = pure id}) Refl) }=
+                 (sym $ applicativeHomomorphism {f} {g = (<*>)} {x = pure id}) Refl) }=
       (MkCompose (pure (\x => pure id <*> x) <*> x'))
          ={ cong {f = MkCompose} (cong {f = \w => pure w <*> x'}
                  (the ((\x : g a => pure id <*> x) = (\x : g a => x)) $ funext (\x => applicativeId {f = g}))) }=
@@ -103,7 +108,7 @@ using (f : Type -> Type, g : Type -> Type)
          ={ cong {f = MkCompose} (replace {P = \w => (pure w <*> x') = pure id <*> x'}
                   (the (id = (\x => x)) $ funext (\x => Refl)) Refl) }=
       (MkCompose (pure id <*> x'))
-         ={ cong {f = MkCompose} (applicativeId {f = f} {v = x'}) }=
+         ={ cong {f = MkCompose} (applicativeId {f} {v = x'}) }=
       (MkCompose x') QED
     applicativeCompose {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} =
       (MkCompose (pure (<*>) <*>
@@ -133,15 +138,15 @@ using (f : Type -> Type, g : Type -> Type)
         ={ ?p }=
       (MkCompose (pure (<*>) <*> u' <*> (pure (<*>) <*> v' <*> w')))
         QED
-    applicativeHomomorphism {f = f} {g = g} {g1 = h} {x = x} =
+    applicativeHomomorphism {f} {g} {g1 = h} {x} =
       (MkCompose (pure (<*>) <*> pure (pure h) <*> pure (pure x)))
-        ={ cong {f = MkCompose} (cong {f = \w => w <*> pure {f = f} (pure {f = g} x)} (applicativeHomomorphism {f = f})) }=
+        ={ cong {f = MkCompose} (cong {f = \w => w <*> pure {f} (pure {f = g} x)} (applicativeHomomorphism {f})) }=
       (MkCompose (pure (\x => pure h <*> x) <*> pure (pure x)))
-        ={ cong {f = MkCompose} (applicativeHomomorphism {f = f}) }=
+        ={ cong {f = MkCompose} (applicativeHomomorphism {f}) }=
       (MkCompose (pure (pure h <*> pure x)))
         ={ cong {f = MkCompose} (cong {f = pure} (applicativeHomomorphism {f = g})) }=
       (MkCompose (pure (pure (h x)))) QED
-    applicativeInterchange {f = f} {g = g} {a = a} {b = b} {u = MkCompose u'} {y = y} =
+    applicativeInterchange {f} {g} {a} {b} {u = MkCompose u'} {y} =
       (MkCompose u' <*> MkCompose (pure (pure y)))
         ={ Refl }=
       (MkCompose (pure (<*>) <*> u' <*> pure (pure y)))
@@ -149,7 +154,7 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure (\h => h $ pure y) <*> (pure (<*>) <*> u')))
         ={ cong {f = MkCompose} (fundet (sym applicativeMap) (pure (<*>) <*> u')) }=
       (MkCompose (map (\h => h $ pure y) (pure (<*>) <*> u')))
-        ={ cong {f = MkCompose} (cong {f = map {f = f} (\h => h $ pure {f = g} y)} (fundet (sym applicativeMap) u') ) }=
+        ={ cong {f = MkCompose} (cong {f = map {f} (\h => h $ pure {f = g} y)} (fundet (sym applicativeMap) u') ) }=
       (MkCompose (map (\h => h $ pure y) (map (<*>) u')))
         ={ cong {f = MkCompose} (fundet (sym mapCompose) u') }=
       (MkCompose (map ((\h => h $ pure y) . (<*>)) u'))
@@ -160,11 +165,11 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure (\x => (pure (\h => h y)) <*> x) <*> u'))
        ={ Refl }=
       (MkCompose (pure ((<*>) (pure (\h => h y))) <*> u'))
-        ={ cong {f = MkCompose} (cong {a = pure ((<*>) (pure (\h => h y))) } {f = \w => w <*> u'} (sym $ applicativeHomomorphism {f = f}) ) }=
+        ={ cong {f = MkCompose} (cong {a = pure ((<*>) (pure (\h => h y))) } {f = \w => w <*> u'} (sym $ applicativeHomomorphism {f}) ) }=
       (MkCompose (pure (<*>) <*> (pure (pure (\h => h y))) <*> u'))
         ={ Refl }=
       (MkCompose (pure (pure (\h => h y))) <*> MkCompose u') QED
-    applicativeMap {u = u} = funext (\(MkCompose w) =>
+    applicativeMap {u} = funext (\(MkCompose w) =>
       (MkCompose (map (map u) w))
         ={ cong {f = MkCompose} (fundet applicativeMap w) }=
       (MkCompose (pure (map u) <*> w))
@@ -177,6 +182,7 @@ using (f : Type -> Type, g : Type -> Type)
 using (t : Type -> Type)
   interface (Traversable t) => VTraversable (t : Type -> Type) where
     traversableNatural : (Applicative f, Applicative g, VApplicativeTransformer f g) => {a, b : Type} -> {h : a -> f b} ->
-                            transformA {f = f} {g = g} . traverse {t = t} h = traverse {t = t} (transformA {f = f} {g = g} . h)
-    traversableIdentity : {a : Type} -> traverse {t = t} MkIdentity = MkIdentity {a = t a}
-    traversableComposition : (Applicative f, Applicative g) => {a,b,c : Type} -> {h : a -> f b} -> {i : b -> g c} -> traverse {t = t} (MkCompose {f = f} {g = g} . map i . h) = MkCompose . map (traverse {t = t} i) . traverse {t = t} h
+                            transformA {f} {g} . traverse {t} h = traverse {t} (transformA {f} {g} . h)
+    traversableIdentity : {a : Type} -> traverse {t} MkIdentity = MkIdentity {a = t a}
+    traversableComposition : (Applicative f, Applicative g) => {a,b,c : Type} -> {h : a -> f b} -> {i : b -> g c} ->
+                            traverse {t} (MkCompose {f} {g} . map i . h) = MkCompose . map (traverse {t} i) . traverse {t} h

@@ -26,7 +26,7 @@ FunTy (argty :: argtys) rty = argty -> FunTy argtys rty
 public export
 composeFun : {argtys, rty, argtys', rty' : _} -> FunTy argtys rty -> FunTy (rty::argtys') rty' -> FunTy (argtys ++ argtys') rty'
 composeFun {argtys = []} v g = g v
-composeFun {argtys = (x :: xs)} f g = \x => composeFun (f x) g
+composeFun {argtys = _ :: _} f g = \x => composeFun (f x) g
 
 public export
 soToEq : So b -> b = True
@@ -43,17 +43,17 @@ soNotSo Oh Oh impossible
 public export
 soAndSo : So (a && b) -> (So a, So b)
 soAndSo {a} {b} soand with (choose a)
-  soAndSo {a = True} {b = b} soand | (Left Oh) = (Oh, soand)
-  soAndSo {a = False} {b = _} Oh | (Right Oh) impossible
-  soAndSo {a = True} {b = _} Oh | (Right Oh) impossible
+  soAndSo {a = True}  soand | Left Oh = (Oh, soand)
+  soAndSo {a = False} Oh    | Right Oh impossible
+  soAndSo {a = True}  Oh    | Right Oh impossible
 
 public export
 soOrSo : So (a || b) -> Either (So a) (So b)
 soOrSo {a} {b} soor with (choose a)
-  soOrSo {a = True} {b = b} soor | (Left Oh) = Left Oh
-  soOrSo {a = False} {b = b} soor | (Left Oh) impossible
-  soOrSo {a = False} {b = b} soor | (Right Oh) = Right soor
-  soOrSo {a = True} {b = b} soor | (Right Oh) impossible
+  soOrSo {a = True}  soor | Left Oh = Left Oh
+  soOrSo {a = False} soor | Left Oh impossible
+  soOrSo {a = False} soor | Right Oh = Right soor
+  soOrSo {a = True}  soor | Right Oh impossible
 
 public export
 dpairEq : {a: Type} -> {P: a -> Type} -> {x, x' : a} -> {y : P x} -> {y' : P x'} -> (p : x = x') -> y = y' -> (x ** y) = (x' ** y')
@@ -65,4 +65,12 @@ postulate -- HOPEFULLY NOTHING GOES WRONG
 
 public export
 fundet : {a, b : Type} -> {f, g : a -> b} -> f = g -> (x : a) -> f x = g x
-fundet {f = f} {g = f} Refl x = Refl
+fundet {f} {g = f} Refl x = Refl
+
+public export
+Uninhabited (Left _ = Right _) where
+  uninhabited Refl impossible
+
+public export
+Uninhabited (Right _ = Left _) where
+  uninhabited Refl impossible
