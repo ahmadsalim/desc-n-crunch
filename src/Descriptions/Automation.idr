@@ -26,7 +26,7 @@ ns n = NS n ["Automation", "Descriptions"]
 
 
 fromTag : Vect (enumSize e) a -> Tag l e -> a
-fromTag (x :: _)  Z = x
+fromTag (x :: _)   Z    = x
 fromTag (_ :: xs) (S t) = fromTag xs t
 
 foo : Datatype
@@ -42,34 +42,30 @@ getIndices tyN tcArgs tm =
                   else fail [TextPart "Wrong datatype: ", NamePart n]
        other => fail [TextPart "Not a datatype application"]
      getArgs args tcArgs
-  where getArgs : List Raw -> List TyConArg -> Elab (List (Raw, Raw))
-        getArgs [] [] =
-          pure []
-        getArgs [] (x :: xs) =
-          fail [TextPart "Argument mismatch"]
-        getArgs (x :: xs) [] =
-          fail [TextPart "Argument mismatch"]
-        getArgs (x :: xs) (TyConParameter y :: ys) =
-          getArgs xs ys
-        getArgs (x :: xs) (TyConIndex y     :: ys) =
-          ((x, type y) ::) <$> getArgs xs ys
+  where
+    getArgs : List Raw -> List TyConArg -> Elab (List (Raw, Raw))
+    getArgs []        []                       = pure []
+    getArgs []        (_ :: _)                 = fail [TextPart "Argument mismatch"]
+    getArgs (_ :: _)  []                       = fail [TextPart "Argument mismatch"]
+    getArgs (_ :: xs) (TyConParameter _ :: ys) = getArgs xs ys
+    getArgs (x :: xs) (TyConIndex y     :: ys) = ((x, type y) ::) <$> getArgs xs ys
 
 prod : List Raw -> Raw
-prod [] = `(() : Type)
-prod [x] = x
+prod []        = `(() : Type)
+prod [x]       = x
 prod (x :: xs) = `((~x, ~(prod xs)) : Type)
 
 prodElem : List (Raw, Raw) -> Raw
-prodElem [] = `(():())
-prodElem [(x, t)] = x
+prodElem []             = `(():())
+prodElem [(x, _)]       = x
 prodElem ((x, t) :: xs) =
   `(MkPair {A=~t} {B=~(prod (map snd xs))}
            ~x ~(prodElem xs))
 
 paramCount : List TyConArg -> Nat
-paramCount [] = 0
-paramCount (TyConParameter x :: xs) = S (paramCount xs)
-paramCount (TyConIndex x     :: xs) = paramCount xs
+paramCount []                       = 0
+paramCount (TyConParameter _ :: xs) = S (paramCount xs)
+paramCount (TyConIndex _     :: xs) = paramCount xs
 
 findParam : FunArg -> Raw -> Elab Nat
 findParam x tm =
@@ -78,14 +74,13 @@ findParam x tm =
      case findIndex (isVar (name x)) args of
        Nothing => empty
        Just j  => pure j
-
   where isVar : TTName -> Raw -> Bool
         isVar n (Var m) = n == m
-        isVar _ _ = False
+        isVar _  _      = False
 
 mkFin : (k, bound : Nat) -> Elab Raw
-mkFin k Z = empty
-mkFin Z (S bound') = pure `(FZ {k=~(quote bound')})
+mkFin  _     Z         = empty
+mkFin  Z    (S bound') = pure `(FZ {k=~(quote bound')})
 mkFin (S k) (S bound') = do i <- mkFin k bound'
                             pure `(FS {k=~(quote bound')} ~i)
 
@@ -95,15 +90,15 @@ isRec tyn tm = case fst (unApply tm) of
                  _ => False
 
 containsParam : List TTName -> Raw -> Bool
-containsParam ps (Var n) = n `elem` ps
+containsParam ps (Var n)        = n `elem` ps
 containsParam ps (RBind n b tm) = binderContains b || containsParam (filter (==n) ps) tm
   where binderContains : Binder Raw -> Bool
         binderContains b =
           foldr (\x,y => x || y) False $ map (containsParam ps) b
-containsParam ps (RApp tm tm') = containsParam ps tm || containsParam ps tm'
-containsParam ps RType = False
-containsParam ps (RUType x) = False
-containsParam ps (RConstant c) = False
+containsParam ps (RApp tm tm')  = containsParam ps tm || containsParam ps tm'
+containsParam _   RType         = False
+containsParam _  (RUType _)     = False
+containsParam _  (RConstant _)  = False
 
 
 mkDesc : TTName -> List TTName -> List TyConArg -> (TTName, List CtorArg, Raw) -> Elab Raw
@@ -148,6 +143,3 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
                                 ~(RBind (name arg)
                                         (Lam (type arg))
                                         rest))
-
-
-

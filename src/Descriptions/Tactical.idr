@@ -22,7 +22,7 @@ applyCtor cn argCount tac =
 ||| the argument tactic. Do this recursively.
 covering
 dfsearch : Nat -> List TTName -> Elab () -> Elab ()
-dfsearch Z _ _ =
+dfsearch  Z    _   _   =
   fail [TextPart "Search failed because the depth limit was reached."]
 dfsearch (S k) tns tac =
   do attack

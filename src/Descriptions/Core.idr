@@ -26,7 +26,7 @@ data Desc : (Ix: Type) -> Type where
   |||
   ||| @ A the constructor field type
   ||| @ kdesc a further description, dependent on an argument of type `A`
-  Arg : {Ix: _} -> (A: Type) -> (kdesc: (a: A) -> Desc Ix) -> Desc Ix
+  Arg : {Ix: _} -> (A: Type) -> (kdesc: A -> Desc Ix) -> Desc Ix
 
   ||| A recursive instantiation of the family at some particular index.
   Rec : {Ix: _} -> (ix: Ix)  -> (kdesc: Desc Ix) -> Desc Ix
@@ -51,8 +51,8 @@ data Tag : CtorLabel -> CtorEnum -> Type where
 %name Tag t, t'
 
 implementation Uninhabited (Tag _ []) where
-  uninhabited Z impossible
-  uninhabited (S t') impossible
+  uninhabited  Z    impossible
+  uninhabited (S _) impossible
 
 ||| Pick a value from the given `choices` depending on the value of the selected label given by `tag`
 |||
@@ -62,8 +62,8 @@ implementation Uninhabited (Tag _ []) where
 ||| @ choices A list of values with the same size as the input set of labels, so there is a value for each label
 ||| @ tag The selected label
 switch : {l,a: _} -> {e : CtorEnum} -> (choices: Vect (length e) a) -> (tag: Tag l e) -> a
-switch {e = _ :: _} (c :: cs) Z = c
-switch {e = _ :: _} (c :: cs) (S t) = switch cs t
+switch {e = _ :: _} (c :: _)   Z    = c
+switch {e = _ :: _} (_ :: cs) (S t) = switch cs t
 
 ||| A set of constructors, tagged by their names, is a function from
 ||| labels in the name set to data descriptions.
@@ -120,7 +120,7 @@ data PDesc : (n : Nat) -> (Ix : Type) -> Type where
   ||| Instantiate at a particular element of the index set. See `Ret`.
   PRet  : {n,Ix: _} -> (ix: Ix)  -> PDesc n Ix
   ||| Take an argument. See `Arg`.
-  PArg  : {n,Ix: _} -> (A: Type) -> (kdesc: (a: A) -> PDesc n Ix) -> PDesc n Ix
+  PArg  : {n,Ix: _} -> (A: Type) -> (kdesc: A -> PDesc n Ix) -> PDesc n Ix
   ||| Select a particular parameter.
   PPar  : {n,Ix: _} -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
   ||| Compute an argument type from one of the parameter types.
@@ -130,27 +130,27 @@ data PDesc : (n : Nat) -> (Ix : Type) -> Type where
 
 ||| Use a particular parameter type for a parameterized family description.
 PUnfold : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
-PUnfold (PRet ix) = \B => PRet ix
-PUnfold (PArg A kdesc) = \B => PArg A (\a : A => PUnfold (kdesc a) B)
-PUnfold (PPar FZ kdesc) = \B => PArg B (\_ => PUnfold kdesc B)
-PUnfold (PPar (FS k) kdesc) = \B => PPar k (PUnfold kdesc B)
-PUnfold (PMap F FZ kdesc) = \B => PArg (F B) (\_ => PUnfold kdesc B)
+PUnfold (PRet ix)             = \_ => PRet ix
+PUnfold (PArg A kdesc)        = \B => PArg A (\a : A => PUnfold (kdesc a) B)
+PUnfold (PPar  FZ    kdesc)   = \B => PArg B (\_ => PUnfold kdesc B)
+PUnfold (PPar (FS k) kdesc)   = \B => PPar k (PUnfold kdesc B)
+PUnfold (PMap F  FZ    kdesc) = \B => PArg (F B) (\_ => PUnfold kdesc B)
 PUnfold (PMap F (FS k) kdesc) = \B => PMap F k (PUnfold kdesc B)
-PUnfold (PRec ix kdesc) = \B => PRec ix (PUnfold kdesc B)
+PUnfold (PRec ix kdesc)       = \B => PRec ix (PUnfold kdesc B)
 
 ||| When all parameters in a PDesc have been filled out, it can be
 ||| represented as an ordinary `Desc`.
 PDescToDesc : {Ix : Type} -> PDesc Z Ix -> Desc Ix
-PDescToDesc (PRet ix) = Ret ix
-PDescToDesc (PArg A kdesc) = Arg A (\a => PDescToDesc (kdesc a))
-PDescToDesc (PPar k kdesc) = absurd k
-PDescToDesc (PMap f k kdesc) = absurd k
+PDescToDesc (PRet ix)       = Ret ix
+PDescToDesc (PArg A kdesc)  = Arg A (\a => PDescToDesc (kdesc a))
+PDescToDesc (PPar k _)      = absurd k
+PDescToDesc (PMap _ k _)    = absurd k
 PDescToDesc (PRec ix kdesc) = Rec ix (PDescToDesc kdesc)
 
 ||| A version of `Synthesize` for parameterized families.
 PSynthesize : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) ((Ix -> Type) -> (Ix -> Type))
-PSynthesize {n = Z} x = Synthesize (PDescToDesc x)
-PSynthesize {n = (S k)} x = \a => PSynthesize (PUnfold x a)
+PSynthesize {n = Z}   x = Synthesize (PDescToDesc x)
+PSynthesize {n = S _} x = \a => PSynthesize (PUnfold x a)
 
 ||| A version of `Data` for parameterized datatypes.
 |||
@@ -159,8 +159,8 @@ PSynthesize {n = (S k)} x = \a => PSynthesize (PUnfold x a)
 ||| will result in something equivalent to `Data` when the parameters
 ||| are instantiated.
 PData : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) (Ix -> Type)
-PData {n = Z} x = Data (PDescToDesc x)
-PData {n = (S k)} x = \a => PData (PUnfold x a)
+PData {n = Z}   x = Data (PDescToDesc x)
+PData {n = S _} x = \a => PData (PUnfold x a)
 
 PTaggedDesc : (e: CtorEnum) -> (n : Nat) -> (Ix : Type) -> Type
 PTaggedDesc e n Ix = (l : CtorLabel) -> Tag l e -> PDesc n Ix
@@ -176,19 +176,19 @@ PTaggedData : {Ix,n: _} -> {e: CtorEnum} -> PTaggedDesc e n Ix -> FunTy (replica
 PTaggedData d = PData (PUntag d)
 
 Constraints : {Ix: _} -> (Interface: Type -> Type) -> (d: Desc Ix) -> Type
-Constraints Interface (Ret ix) = Unit
+Constraints _         (Ret _)       = Unit
 Constraints Interface (Arg A kdesc) = (Interface A, (a: A) -> Constraints Interface (kdesc a))
-Constraints Interface (Rec ix kdesc) = Constraints Interface kdesc
+Constraints Interface (Rec _ kdesc) = Constraints Interface kdesc
 
 TaggedConstraints : {e, Ix: _} -> (Interface: Type -> Type) -> (td: TaggedDesc e Ix) -> Type
 TaggedConstraints {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> Constraints Interface (td l t)
 
 PConstraints1 : {Ix: _} -> (Interface : (Type -> Type) -> Type) -> (d: PDesc (S Z) Ix) -> Type
-PConstraints1 Interface (PRet ix) = ()
-PConstraints1 Interface (PArg A kdesc) = (a : A) -> PConstraints1 Interface (kdesc a)
-PConstraints1 Interface (PPar k kdesc) = PConstraints1 Interface kdesc
-PConstraints1 Interface (PMap f k kdesc) = (Interface f, PConstraints1 Interface kdesc)
-PConstraints1 Interface (PRec ix kdesc) = PConstraints1 Interface kdesc
+PConstraints1 _         (PRet _)         = ()
+PConstraints1 Interface (PArg A kdesc)   = (a : A) -> PConstraints1 Interface (kdesc a)
+PConstraints1 Interface (PPar _ kdesc)   = PConstraints1 Interface kdesc
+PConstraints1 Interface (PMap f _ kdesc) = (Interface f, PConstraints1 Interface kdesc)
+PConstraints1 Interface (PRec _ kdesc)   = PConstraints1 Interface kdesc
 
 PTaggedConstraints1 : {e, Ix: _} -> (Interface : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) Ix) -> Type
 PTaggedConstraints1 {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 Interface (td l t)
