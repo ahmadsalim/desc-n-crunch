@@ -111,32 +111,79 @@ using (f : Type -> Type, g : Type -> Type)
          ={ cong {f = MkCompose} (applicativeId {f} {v = x'}) }=
       (MkCompose x') QED
     applicativeCompose {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} =
-      (MkCompose (pure (<*>) <*>
-                   (pure (<*>) <*>
-                     (pure (<*>) <*> pure (pure (.)) <*> u') <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (pure (<*>) <*>
-                    (pure (<*>) <*>
-                      (pure ((pure (.)) <*>) <*> u') <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (pure (<*>) <*>
-                    (pure (<*>) <*>
-                      (map ((pure (.)) <*>) u') <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (pure (<*>) <*>
-                    (map (<*>) (map ((pure (.)) <*>) u') <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (map (<*>) (map (<*>) (map ((pure (.)) <*>) u') <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (map (<*>) (map ((<*>) . ((pure (.)) <*>)) u' <*> v') <*> w') )
-        ={ Refl }=
-      (MkCompose (map (<*>) (map (\x, y => (pure (.)) <*> x <*> y) u' <*> v') <*> w') )
-        ={ ?p }=
-      (MkCompose (map (<*>) u' <*> (map (<*>) v' <*> w')))
-        ={ ?p }=
-      (MkCompose (map (<*>) u' <*> (pure (<*>) <*> v' <*> w')))
-        ={ ?p }=
-      (MkCompose (pure (<*>) <*> u' <*> (pure (<*>) <*> v' <*> w')))
+      (MkCompose $ pure (<*>) <*> (pure (<*>) <*> (pure (<*>) <*> pure (pure (.)) <*> u') <*> v') <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (<*>) <*> (pure (<*>) <*> (z <*> u') <*> v') <*> w'} $
+           applicativeHomomorphism {g = (<*>)} {x = pure (.)} }=
+      (MkCompose $ pure (<*>) <*> (pure (<*>) <*> (pure ((pure (.)) <*>) <*> u') <*> v') <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (<*>) <*> (z <*> v') <*> w'} $
+           sym $ applicativeCompose {u = pure (<*>)} {v = pure ((pure (.)) <*>)} {w = u'} }=
+      (MkCompose $ pure (<*>) <*> (pure (.) <*> pure (<*>) <*> pure ((pure (.)) <*>) <*> u' <*> v') <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (<*>) <*> (z <*> pure ((pure (.)) <*>) <*> u' <*> v') <*> w'} $
+           applicativeHomomorphism {g = (.)} {x = (<*>)} }=
+      (MkCompose $ pure (<*>) <*> (pure ((.) $ (<*>)) <*> pure ((pure (.)) <*>) <*> u' <*> v') <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (<*>) <*> (z <*> u' <*> v') <*> w'} $
+           applicativeHomomorphism {g = ((.) $ (<*>))} {x = ((pure (.)) <*>)} }=
+      (MkCompose $ pure (<*>) <*> (pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u' <*> v') <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> w'} $
+           sym $ applicativeCompose {u = pure (<*>)} {v = pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u'} {w = v'} }=
+      (MkCompose $ pure (.) <*> pure (<*>) <*> (pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u') <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> (pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u') <*> v' <*> w'} $
+           applicativeHomomorphism {g = (.)} {x = (<*>)} }=
+      (MkCompose $ pure ((.) $ (<*>)) <*> (pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u') <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> v' <*> w'} $
+           sym $ applicativeCompose {u = pure ((.) $ (<*>))} {v = pure (((.) $ (<*>)) $ ((pure (.)) <*>))} {w = u'} }=
+      (MkCompose $ pure (.) <*> pure ((.) $ (<*>)) <*> pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u' <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u' <*> v' <*> w'} $
+           applicativeHomomorphism {g = (.)} {x = ((.) $ (<*>))} }=
+      (MkCompose $ pure ((.) $ ((.) $ (<*>))) <*> pure (((.) $ (<*>)) $ ((pure (.)) <*>)) <*> u' <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> u' <*> v' <*> w'} $
+           applicativeHomomorphism {g = ((.) $ ((.) $ (<*>)))} {x = (((.) $ (<*>)) $ ((pure (.)) <*>))} }=
+      (MkCompose $ pure (((.) $ ((.) $ (<*>))) $ (((.) $ (<*>)) $ ((pure (.)) <*>))) <*> u' <*> v' <*> w')
+        -- both of these should be equal to `pure (\x, y, z => pure (.) <*> x <*> y <*> z) <*> u <*> v <*> w`
+        ={ ?abracadabra }=
+      (MkCompose $ pure ((\q => q $ (<*>)) . (((.) $ (.)) $ (((.) $ (.)) $ (<*>)))) <*> u' <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z u' <*> v' <*> w'} $
+           sym $ applicativeMap {u = ((\q => q $ (<*>)) . (((.) $ (.)) $ (((.) $ (.)) $ (<*>))))} }=
+      (MkCompose $ map ((\q => q $ (<*>)) . (((.) $ (.)) $ (((.) $ (.)) $ (<*>)))) u' <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z u' <*> v' <*> w'} $
+           mapCompose {g = (\q => q $ (<*>)) } {h = (((.) $ (.)) $ (((.) $ (.)) $ (<*>)))} }=
+      (MkCompose $ map (\q => q $ (<*>)) (map (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) u') <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ map (\q => q $ (<*>)) (z u') <*> v' <*> w'} $
+           applicativeMap {u = (((.) $ (.)) $ (((.) $ (.)) $ (<*>)))} }=
+      (MkCompose $ map (\q => q $ (<*>)) (pure (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) <*> u') <*> v' <*> w')
+        ={ ?prf }=
+        -- DOESN'T WORK: Type mismatch between `g (a -> b1) -> g a -> g b1` and `f (a -> b) -> f a -> g b1`
+        -- NEEDS FUNEXT?
+        -- ={ cong {f=\z=>MkCompose $ z (pure (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) <*> u') <*> v' <*> w'} $
+        --    applicativeMap {u = (\q => q $ (<*>))} }=
+      (MkCompose $ pure (\g => g $ (<*>)) <*> (pure (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) <*> u') <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> v' <*> w'} $
+           sym $ applicativeInterchange {u = pure (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) <*> u'} {y = (<*>)} }=
+      (MkCompose $ pure (((.) $ (.)) $ (((.) $ (.)) $ (<*>))) <*> u' <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> u' <*> pure (<*>) <*> v' <*> w'} $
+           sym $ applicativeHomomorphism {g = ((.) $ (.))} {x = (((.) $ (.)) $ (<*>))} }=
+      (MkCompose $ pure ((.) $ (.)) <*> pure (((.) $ (.)) $ (<*>)) <*> u' <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> pure (((.) $ (.)) $ (<*>)) <*> u' <*> pure (<*>) <*> v' <*> w'} $
+           sym $ applicativeHomomorphism {g = (.)} {x = (.)} }=
+      (MkCompose $ pure (.) <*> pure (.) <*> pure (((.) $ (.)) $ (<*>)) <*> u' <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> pure (<*>) <*> v' <*> w'} $
+           applicativeCompose {u = pure (.)} {v = pure (((.) $ (.)) $ (<*>))} {w = u'} }=
+      (MkCompose $ pure (.) <*> (pure (((.) $ (.)) $ (<*>)) <*> u') <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (.) <*> (z <*> u') <*> pure (<*>) <*> v' <*> w'} $
+           sym $ applicativeHomomorphism {g = ((.) $ (.))} {x = (<*>)} }=
+      (MkCompose $ pure (.) <*> (pure ((.) $ (.)) <*> pure (<*>) <*> u') <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (.) <*> (z <*> pure (<*>) <*> u') <*> pure (<*>) <*> v' <*> w'} $
+           sym $ applicativeHomomorphism {g = (.)} {x = (.)} }=
+      (MkCompose $ pure (.) <*> (pure (.) <*> pure (.) <*> pure (<*>) <*> u') <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ pure (.) <*> z <*> pure (<*>) <*> v' <*> w'} $
+           applicativeCompose {u = pure (.)} {v = pure (<*>)} {w = u'} }=
+      (MkCompose $ pure (.) <*> (pure (.) <*> (pure (<*>) <*> u')) <*> pure (<*>) <*> v' <*> w')
+        ={ cong {f=\z=>MkCompose $ z <*> w'} $
+           applicativeCompose {u = pure (.) <*> (pure (<*>) <*> u')} {v = pure (<*>)} {w = v'} }=
+      (MkCompose $ pure (.) <*> (pure (<*>) <*> u') <*> (pure (<*>) <*> v') <*> w')
+        ={ cong {f=MkCompose} $
+           applicativeCompose {u = pure (<*>) <*> u'} {v = pure (<*>) <*> v'} {w = w'} }=
+      (MkCompose $ pure (<*>) <*> u' <*> (pure (<*>) <*> v' <*> w'))
         QED
     applicativeHomomorphism {f} {g} {g1 = h} {x} =
       (MkCompose (pure (<*>) <*> pure (pure h) <*> pure (pure x)))
@@ -165,7 +212,7 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure (\x => (pure (\h => h y)) <*> x) <*> u'))
        ={ Refl }=
       (MkCompose (pure ((<*>) (pure (\h => h y))) <*> u'))
-        ={ cong {f = MkCompose} (cong {a = pure ((<*>) (pure (\h => h y))) } {f = \w => w <*> u'} (sym $ applicativeHomomorphism {f}) ) }=
+        ={ cong {f = MkCompose} (cong {a = pure ((<*>) (pure (\h => h y)))} {f = \w => w <*> u'} (sym $ applicativeHomomorphism {f}) ) }=
       (MkCompose (pure (<*>) <*> (pure (pure (\h => h y))) <*> u'))
         ={ Refl }=
       (MkCompose (pure (pure (\h => h y))) <*> MkCompose u') QED
