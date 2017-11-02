@@ -141,12 +141,11 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose $ pure (((.) $ ((.) $ (<*>))) $ (((.) $ (<*>)) $ ((pure (.)) <*>))) <*> u' <*> v' <*> w')
         ={ Refl }=
       (MkCompose $ pure (\x, y, z => pure (.) <*> x <*> y <*> z) <*> u' <*> v' <*> w')
-        -- the lambdas under `pure` here both have type `g (b -> c) -> g (a -> b) -> g a -> g c`
-        ={ ?abracadabra }=
-        -- here apparently the first part is
-        -- `(q : (g (a -> b) -> g a -> g b) -> g (a -> b) -> g a -> g c) -> g (a -> b) -> g a -> g c`
-        -- and the second one
-        -- `g (b -> c) -> (g (a -> b) -> g a -> g b) -> g (a -> b) -> g a -> g c`
+        ={ cong {f=\z : g (b -> c) -> g (a -> b) -> g a -> g c => MkCompose $ pure z <*> u' <*> v' <*> w'} $
+           funext $ \x : g (b -> c) =>
+             funext $ \y : g (a -> b) =>
+               funext $ \z : g a =>
+                 applicativeCompose {u = x} {v = y} {w = z} }=
       (MkCompose $ pure ((\q => q (<*>)) . ((.) . ((.) . (<*>)))) <*> u' <*> v' <*> w')
         ={ cong {f=\z=>MkCompose $ z u' <*> v' <*> w'} $
            sym $ applicativeMap {u = ((\q => q (<*>)) . ((.) . ((.) . (<*>))))}}=
