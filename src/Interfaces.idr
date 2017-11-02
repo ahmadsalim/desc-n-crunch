@@ -110,7 +110,7 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose (pure id <*> x'))
          ={ cong {f = MkCompose} (applicativeId {f} {v = x'}) }=
       (MkCompose x') QED
-    applicativeCompose {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} =
+    applicativeCompose {a} {b} {c} {u = MkCompose u'} {v = MkCompose v'} {w = MkCompose w'} =
       (MkCompose $ pure (<*>) <*> (pure (<*>) <*> (pure (<*>) <*> pure (pure (.)) <*> u') <*> v') <*> w')
         ={ cong {f=\z=>MkCompose $ pure (<*>) <*> (pure (<*>) <*> (z <*> u') <*> v') <*> w'} $
            applicativeHomomorphism {g = (<*>)} {x = pure (.)} }=
@@ -141,7 +141,12 @@ using (f : Type -> Type, g : Type -> Type)
       (MkCompose $ pure (((.) $ ((.) $ (<*>))) $ (((.) $ (<*>)) $ ((pure (.)) <*>))) <*> u' <*> v' <*> w')
         ={ Refl }=
       (MkCompose $ pure (\x, y, z => pure (.) <*> x <*> y <*> z) <*> u' <*> v' <*> w')
+        -- the lambdas under `pure` here both have type `g (b -> c) -> g (a -> b) -> g a -> g c`
         ={ ?abracadabra }=
+        -- here apparently the first part is
+        -- `(q : (g (a -> b) -> g a -> g b) -> g (a -> b) -> g a -> g c) -> g (a -> b) -> g a -> g c`
+        -- and the second one
+        -- `g (b -> c) -> (g (a -> b) -> g a -> g b) -> g (a -> b) -> g a -> g c`
       (MkCompose $ pure ((\q => q (<*>)) . ((.) . ((.) . (<*>)))) <*> u' <*> v' <*> w')
         ={ cong {f=\z=>MkCompose $ z u' <*> v' <*> w'} $
            sym $ applicativeMap {u = ((\q => q (<*>)) . ((.) . ((.) . (<*>))))}}=
@@ -152,11 +157,9 @@ using (f : Type -> Type, g : Type -> Type)
         ={ cong {f=\z=>MkCompose $ map (\q => q (<*>)) (z u') <*> v' <*> w'} $
            applicativeMap {u = ((.) . ((.) . (<*>)))} }=
       (MkCompose $ map (\q => q (<*>)) (pure ((.) . ((.) . (<*>))) <*> u') <*> v' <*> w')
-        ={ ?prf }=
-        -- DOESN'T WORK: Type mismatch between `g (a -> b1) -> g a -> g b1` and `f (a -> b) -> f a -> g b1`
-        -- NEEDS FUNEXT?
-        -- ={ cong {f=\z=>MkCompose $ z (pure ((.) . ((.) . (<*>))) <*> u') <*> v' <*> w'} $
-        --    applicativeMap {u = (\q => q $ (<*>))} }=
+        ={ cong {f=\z : f ((g (a -> b) -> g a -> g b) -> g (a -> b) -> g a -> g c) -> f (g (a -> b) -> g a -> g c) =>
+                   MkCompose $ z (pure ((.) . ((.) . (<*>))) <*> u') <*> v' <*> w'} $
+           applicativeMap {u = (\q => q $ (<*>))} }=
       (MkCompose $ pure (\q => q (<*>)) <*> (pure ((.) . ((.) . (<*>))) <*> u') <*> v' <*> w')
         ={ cong {f=\z=>MkCompose $ z <*> v' <*> w'} $
            sym $ applicativeInterchange {u = pure ((.) . ((.) . (<*>))) <*> u'} {y = (<*>)} }=
