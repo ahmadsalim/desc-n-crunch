@@ -18,21 +18,21 @@ showLabel (MN x y) = "{" ++ y ++ show x ++ "}"
 showLabel (SN _) = "{{SN}}"
 
 mutual
-  gshowd : {e, Ix: _} -> (dr: TaggedDesc e Ix) -> (constraintsr: TaggedConstraints Show dr)
-                      -> (d: Desc Ix) -> (constraints: Constraints Show d)
-                      -> {ix: Ix} -> (synth: Synthesize d (TaggedData dr) ix)
+  gshowd : {e, Ix: _} -> (dR: TaggedDesc e Ix) -> (cstrsR: TaggedConstraints Show dR)
+                      -> (d: Desc Ix) -> (cstrs: Constraints Show d)
+                      -> {ix: Ix} -> (synth: Synthesize d (TaggedData dR) ix)
                       -> String
   gshowd _  _            (Ret _) () Refl = ""
-  gshowd dr constraintsr (Arg _ kdesc) (showa, showkdesc) (arg ** rest) =
+  gshowd dR cstrsR (Arg _ kdesc) (showa, showkdesc) (arg ** rest) =
     " " ++ parenthesize (show @{showa} arg)
-        ++ gshowd dr constraintsr (kdesc arg) (showkdesc arg) rest
-  gshowd dr constraintsr (Rec _ kdesc) constraints (rec ** rest) =
-    " " ++ parenthesize (gshow dr constraintsr rec)
-        ++ gshowd dr constraintsr kdesc constraints rest
+        ++ gshowd dR cstrsR (kdesc arg) (showkdesc arg) rest
+  gshowd dR cstrsR (Rec _ kdesc) cstrs (rec ** rest) =
+    " " ++ parenthesize (gshow dR cstrsR rec)
+        ++ gshowd dR cstrsR kdesc cstrs rest
 
-  gshow : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (constraints: TaggedConstraints Show d)
+  gshow : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (cstrs: TaggedConstraints Show d)
                     -> {ix : Ix} -> (X : TaggedData d ix) -> String
-  gshow d constraints (Con (label ** tag ** rest)) =
-    let constraints' = constraints label tag
-        showrest = assert_total $ gshowd d constraints (d label tag) constraints' rest
+  gshow d cstrs (Con (label ** tag ** rest)) =
+    let cstrs' = cstrs label tag
+        showrest = assert_total $ gshowd d cstrs (d label tag) cstrs' rest
     in showLabel label ++ showrest
