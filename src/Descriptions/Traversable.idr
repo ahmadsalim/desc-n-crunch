@@ -156,6 +156,29 @@ using (f: Type -> Type, g: Type -> Type)
    gtraversableCompositionH {f} {g} {ix} d constraints h i (Con {ix} x) with (assert_total $ gtraversabledCompositionH d constraints d constraints h i x)
      gtraversableCompositionH {f} {g} {ix} d constraints h i (Con {ix} x) | prf =
        rewrite prf in composeTraverseConLemma d constraints h i x
-  gtraversableComposition : (VApplicative f, VApplicative g) => {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d)
-                           -> (h : a -> f b) -> (i : b -> g c) -> gtraverse d constraints (MkCompose {f} {g} . map i . h) = MkCompose . map (gtraverse d constraints i) . gtraverse d constraints h
+
+  gtraversableComposition : (VApplicative f, VApplicative g) => {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
+                            (h : a -> f b) -> (i : b -> g c) ->
+                            gtraverse d constraints (MkCompose {f} {g} . map i . h) = MkCompose . map (gtraverse d constraints i) . gtraverse d constraints h
   gtraversableComposition d constraints h i = funext (gtraversableCompositionH d constraints h i)
+
+  mutual
+    gtraversabledNaturalityH : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+                                  {a, b, Ix: _} ->
+                                  (dr: PDesc 1 Ix) -> (constraintsr: PConstraints1 VTraversable dr) ->
+                                  (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
+                                  (h: a -> f b) -> {ix : Ix} -> (X : PSynthesize d a (PData dr a) ix) ->
+                                  transformA {f} {g} (gtraversed dr constraintsr d constraints h X) =
+                                    gtraversed {g = g} dr constraintsr d constraints (transformA {f} {g} . h) X
+    gtraversabledNaturalityH dr constraintsr d constraints h X = ?gtraversableNaturalityH_rhs
+
+    gtraversableNaturalityH : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+                                {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
+                                (h: a -> f b) -> {ix : Ix} -> (X : PData d a ix) ->
+                                transformA {f} {g} (gtraverse d constraints h X) = gtraverse d constraints (transformA {f} {g} . h) X
+    gtraversableNaturalityH d constraints h X = ?gtraversableNaturalityH_rhs
+
+  gtraversableNaturality : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+                           {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) -> (h: a -> f b) ->
+                           transformA {f} {g} . gtraverse d constraints h = gtraverse d constraints (transformA {f} {g} . h)
+  gtraversableNaturality {f} {g} d constraints h = funext (\X => gtraversableNaturalityH {f} {g} d constraints h X)
