@@ -8,79 +8,79 @@ import Interfaces
 %auto_implicits off
 
 mutual
-  gmapd : {a, b, Ix: _} -> (dr: PDesc (S Z) Ix) -> PConstraints1 VFunctor dr
+  gmapd : {a, b, Ix: _} -> (dR: PDesc (S Z) Ix) -> PConstraints1 VFunctor dR
                         -> (d: PDesc (S Z) Ix) -> PConstraints1 VFunctor d
-                        -> (a -> b) -> {ix: Ix} -> PSynthesize d a (PData dr a) ix
-                        -> PSynthesize d b (PData dr b) ix
+                        -> (a -> b) -> {ix: Ix} -> PSynthesize d a (PData dR a) ix
+                        -> PSynthesize d b (PData dR b) ix
   gmapd _  _            (PRet _) _ _ Refl = Refl
-  gmapd dr constraintsr (PArg _ kdesc) constraints f (arg ** rest) =
-    (arg ** gmapd dr constraintsr (kdesc arg) (constraints arg) f rest)
-  gmapd dr constraintsr (PPar  FZ kdesc) constraints f (par ** rest) =
-    (f par ** gmapd dr constraintsr kdesc constraints f rest)
+  gmapd dR cstrsR (PArg _ kdesc) cstrs f (arg ** rest) =
+    (arg ** gmapd dR cstrsR (kdesc arg) (cstrs arg) f rest)
+  gmapd dR cstrsR (PPar FZ kdesc) cstrs f (par ** rest) =
+    (f par ** gmapd dR cstrsR kdesc cstrs f rest)
   gmapd _  _            (PPar (FS FZ) _) _ _ _ impossible
   gmapd _  _            (PPar (FS (FS _)) _) _ _ _ impossible
-  gmapd dr constraintsr (PMap _ FZ kdesc) (_, constraints) f (targ ** rest) =
-    (map f targ ** gmapd dr constraintsr kdesc constraints f rest)
+  gmapd dR cstrsR (PMap _ FZ kdesc) (_, cstrs) f (targ ** rest) =
+    (map f targ ** gmapd dR cstrsR kdesc cstrs f rest)
   gmapd _  _            (PMap _ (FS FZ) _) _ _ _ impossible
   gmapd _  _            (PMap _ (FS (FS _)) _) _ _ _ impossible
-  gmapd dr constraintsr (PRec _ kdesc) constraints f (rec ** rest) =
-    (gmap dr constraintsr f rec ** gmapd dr constraintsr kdesc constraints f rest)
+  gmapd dR cstrsR (PRec _ kdesc) cstrs f (rec ** rest) =
+    (gmap dR cstrsR f rec ** gmapd dR cstrsR kdesc cstrs f rest)
 
   gmap : {a, b, Ix: _} -> (d: PDesc (S Z) Ix) -> PConstraints1 VFunctor d
                        -> {ix: Ix} -> (a -> b) -> PData d a ix -> PData d b ix
-  gmap d constraints f (Con x) = Con (assert_total $ gmapd d constraints d constraints f x)
+  gmap d cstrs f (Con x) = Con (assert_total $ gmapd d cstrs d cstrs f x)
 
 mutual
-  gmapdIdH : {a, Ix: _} -> (dr: PDesc 1 Ix) -> (constraintsr: PConstraints1 VFunctor dr)
-                        -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d)
-                        -> {ix: Ix} -> (X: PSynthesize d a (PData dr a) ix)
-                        -> gmapd dr constraintsr d constraints id X = id X
+  gmapdIdH : {a, Ix: _} -> (dR: PDesc 1 Ix) -> (cstrsR: PConstraints1 VFunctor dR)
+                        -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d)
+                        -> {ix: Ix} -> (X: PSynthesize d a (PData dR a) ix)
+                        -> gmapd dR cstrsR d cstrs id X = id X
   gmapdIdH     _  _            (PRet _) _ Refl = Refl
-  gmapdIdH     dr constraintsr (PArg _ kdesc) constraints (arg ** rest) =
-    cong $ gmapdIdH dr constraintsr (kdesc arg) (constraints arg) rest
-  gmapdIdH     dr constraintsr (PPar FZ kdesc) constraints (_ ** rest) =
-    dpairEq Refl (gmapdIdH dr constraintsr kdesc constraints rest)
+  gmapdIdH     dR cstrsR (PArg _ kdesc) cstrs (arg ** rest) =
+    cong $ gmapdIdH dR cstrsR (kdesc arg) (cstrs arg) rest
+  gmapdIdH     dR cstrsR (PPar FZ kdesc) cstrs (_ ** rest) =
+    dpairEq Refl (gmapdIdH dR cstrsR kdesc cstrs rest)
   gmapdIdH     _  _            (PPar (FS FZ) _) _ _ impossible
   gmapdIdH     _  _            (PPar (FS (FS _)) _) _ _ impossible
-  gmapdIdH {a} dr constraintsr (PMap f  FZ kdesc) (vfunta, vfunr) (ta ** rest) =
-    dpairEq (fundet {a = f a} (mapId @{vfunta} {a}) ta) (gmapdIdH dr constraintsr kdesc vfunr rest)
+  gmapdIdH {a} dR cstrsR (PMap f  FZ kdesc) (vfunta, vfunr) (ta ** rest) =
+    dpairEq (fundet {a = f a} (mapId @{vfunta} {a}) ta) (gmapdIdH dR cstrsR kdesc vfunr rest)
   gmapdIdH     _  _            (PMap _ (FS FZ) _) _ _ impossible
   gmapdIdH     _  _            (PMap _ (FS (FS _)) _) _ _ impossible
-  gmapdIdH     dr constraintsr (PRec _ kdesc) constraints (rec ** rest) =
-    dpairEq (gmapIdH dr constraintsr rec) (gmapdIdH dr constraintsr kdesc constraints rest)
+  gmapdIdH     dR cstrsR (PRec _ kdesc) cstrs (rec ** rest) =
+    dpairEq (gmapIdH dR cstrsR rec) (gmapdIdH dR cstrsR kdesc cstrs rest)
 
-  gmapIdH : {a, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d)
-                       -> {ix: Ix} -> (X: PData d a ix) -> gmap d constraints id X = id X
-  gmapIdH d constraints (Con x) = assert_total $ cong $ gmapdIdH d constraints d constraints x
+  gmapIdH : {a, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d)
+                       -> {ix: Ix} -> (X: PData d a ix) -> gmap d cstrs id X = id X
+  gmapIdH d cstrs (Con x) = assert_total $ cong $ gmapdIdH d cstrs d cstrs x
 
-gmapId : {a, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d) -> {ix: Ix} -> gmap d constraints id = id
-gmapId d constraints = funext (gmapIdH d constraints)
+gmapId : {a, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d) -> {ix: Ix} -> gmap d cstrs id = id
+gmapId d cstrs = funext (gmapIdH d cstrs)
 
 mutual
-  gmapdComposeH : {a, b, c, Ix: _} -> (dr: PDesc 1 Ix) -> (constraintsr: PConstraints1 VFunctor dr)
-                                   -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d)
-                                   -> {ix: Ix} -> (f : b -> c) -> (g : a -> b) -> (X : PSynthesize d a (PData dr a) ix)
-                                   -> gmapd dr constraintsr d constraints (f . g) X = (gmapd dr constraintsr d constraints f . gmapd dr constraintsr d constraints g) X
+  gmapdComposeH : {a, b, c, Ix: _} -> (dR: PDesc 1 Ix) -> (cstrsR: PConstraints1 VFunctor dR)
+                                   -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d)
+                                   -> {ix: Ix} -> (f : b -> c) -> (g : a -> b) -> (X : PSynthesize d a (PData dR a) ix)
+                                   -> gmapd dR cstrsR d cstrs (f . g) X = (gmapd dR cstrsR d cstrs f . gmapd dR cstrsR d cstrs g) X
   gmapdComposeH _  _            (PRet _)       _           _ _ Refl = Refl
-  gmapdComposeH dr constraintsr (PArg _ kdesc) constraints f g (arg ** rest) =
-    dpairEq Refl (gmapdComposeH dr constraintsr (kdesc arg) (constraints arg) f g rest)
-  gmapdComposeH dr constraintsr (PPar  FZ kdesc) constraints f g (a ** rest) =
-    dpairEq Refl (gmapdComposeH dr constraintsr kdesc constraints f g rest)
+  gmapdComposeH dR cstrsR (PArg _ kdesc) cstrs f g (arg ** rest) =
+    dpairEq Refl (gmapdComposeH dR cstrsR (kdesc arg) (cstrs arg) f g rest)
+  gmapdComposeH dR cstrsR (PPar  FZ kdesc) cstrs f g (a ** rest) =
+    dpairEq Refl (gmapdComposeH dR cstrsR kdesc cstrs f g rest)
   gmapdComposeH _  _            (PPar (FS  FZ) _)    _ _ _ _ impossible
   gmapdComposeH _  _            (PPar (FS (FS _)) _) _ _ _ _ impossible
-  gmapdComposeH {a} {b} {c} dr constraintsr (PMap _ FZ kdesc) (vfunta, vfunr) f g (ta ** rest) =
-    dpairEq (fundet (mapCompose @{vfunta} {a} {b} {c} {g = f} {h = g}) ta) (gmapdComposeH dr constraintsr kdesc vfunr f g rest)
+  gmapdComposeH {a} {b} {c} dR cstrsR (PMap _ FZ kdesc) (vfunta, vfunr) f g (ta ** rest) =
+    dpairEq (fundet (mapCompose @{vfunta} {a} {b} {c} {g = f} {h = g}) ta) (gmapdComposeH dR cstrsR kdesc vfunr f g rest)
   gmapdComposeH _ _ (PMap _ (FS FZ) _) _ _ _ _ impossible
   gmapdComposeH _ _ (PMap _ (FS (FS _)) _) _ _ _ _ impossible
-  gmapdComposeH dr constraintsr (PRec ix kdesc) constraints f g (rec ** rest) =
-    dpairEq (gmapComposeH dr constraintsr f g rec) (gmapdComposeH dr constraintsr kdesc constraints f g rest)
+  gmapdComposeH dR cstrsR (PRec ix kdesc) cstrs f g (rec ** rest) =
+    dpairEq (gmapComposeH dR cstrsR f g rec) (gmapdComposeH dR cstrsR kdesc cstrs f g rest)
 
-  gmapComposeH : {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d)
+  gmapComposeH : {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d)
                                   -> {ix: Ix} -> (f : b -> c) -> (g : a -> b) -> (X : PData d a ix)
-                                  -> gmap d constraints (f . g) X = (gmap d constraints f . gmap d constraints g) X
-  gmapComposeH d constraints f g (Con x) = assert_total $ cong $ gmapdComposeH d constraints d constraints f g x
+                                  -> gmap d cstrs (f . g) X = (gmap d cstrs f . gmap d cstrs g) X
+  gmapComposeH d cstrs f g (Con x) = assert_total $ cong $ gmapdComposeH d cstrs d cstrs f g x
 
-gmapCompose : {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VFunctor d)
+gmapCompose : {a, b, c, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VFunctor d)
                                -> {ix: Ix} -> (f : b -> c) -> (g : a -> b)
-                               -> gmap d constraints (f . g) = gmap d constraints f . gmap d constraints g
-gmapCompose d constraints f g = funext (gmapComposeH d constraints f g)
+                               -> gmap d cstrs (f . g) = gmap d cstrs f . gmap d cstrs g
+gmapCompose d cstrs f g = funext (gmapComposeH d cstrs f g)
