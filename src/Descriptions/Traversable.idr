@@ -21,15 +21,15 @@ using (f: Type -> Type, g: Type -> Type)
                              -> (d: PDesc (S Z) Ix) -> (cstrs: PConstraints1 VTraversable d) -> {ix : Ix}
                              -> (f: a -> g b) -> PSynthesize d a (PData dR a) ix
                              -> g (PSynthesize d b (PData dR b) ix)
-    gtraversed _ _ (PRet _) _ _ Refl = pure Refl
-    gtraversed dR cstrsR (PArg _ kdesc) cstrs f (arg ** rest) = pure (MkDPair arg) <*> (gtraversed dR cstrsR (kdesc arg) (cstrs arg) f rest)
-    gtraversed dR cstrsR (PPar FZ kdesc) cstrs f (p ** rest) = zipA (f p) (gtraversed dR cstrsR kdesc cstrs f rest)
-    gtraversed _ _ (PPar (FS FZ) _) _ _ _ impossible
-    gtraversed _ _ (PPar (FS (FS _)) _) _ _ _ impossible
-    gtraversed dR cstrsR (PMap _ FZ kdesc) (vtrava, vtravr) f (ta ** rest) = zipA (traverse f ta) (gtraversed dR cstrsR kdesc vtravr f rest)
-    gtraversed _ _ (PMap _ (FS FZ) _) _ _ _ impossible
-    gtraversed _ _ (PMap _ (FS (FS _)) _) _ _ _ impossible
-    gtraversed dR cstrsR (PRec _ kdesc) cstrs f (rec ** rest) = zipA (gtraverse dR cstrsR f rec) (gtraversed dR cstrsR kdesc cstrs f rest)
+    gtraversed _  _      (PRet _)               _                _ Refl          = pure Refl
+    gtraversed dR cstrsR (PArg _ kdesc)         cstrs            f (arg ** rest) = pure (MkDPair arg) <*> (gtraversed dR cstrsR (kdesc arg) (cstrs arg) f rest)
+    gtraversed dR cstrsR (PPar FZ kdesc)        cstrs            f (p ** rest)   = zipA (f p) (gtraversed dR cstrsR kdesc cstrs f rest)
+    gtraversed _  _      (PPar (FS FZ)     _)   _                _ _ impossible
+    gtraversed _  _      (PPar (FS (FS _)) _)   _                _ _ impossible
+    gtraversed dR cstrsR (PMap _ FZ kdesc)      (vtrava, vtravr) f (ta ** rest)  = zipA (traverse f ta) (gtraversed dR cstrsR kdesc vtravr f rest)
+    gtraversed _  _      (PMap _ (FS FZ)     _) _                _ _ impossible
+    gtraversed _  _      (PMap _ (FS (FS _)) _) _                _ _ impossible
+    gtraversed dR cstrsR (PRec _ kdesc)         cstrs            f (rec ** rest) = zipA (gtraverse dR cstrsR f rec) (gtraversed dR cstrsR kdesc cstrs f rest)
 
     gtraverse : Applicative g => {a,b,Ix: _} -> (d: PDesc (S Z) Ix) -> (PConstraints1 VTraversable d) -> {ix : Ix}
                                              -> (f: a -> g b) -> PData d a ix -> g (PData d b ix)
@@ -107,8 +107,8 @@ using (f: Type -> Type, g: Type -> Type)
        replace {P = \r => MkCompose (pure {f} (pure {f=g} {a=(ix=ix)} Refl)) = MkCompose (r (pure Refl))} (sym prf) $
        replace {P = \r => MkCompose (pure {f} (pure {f=g} {a=(ix=ix)} Refl)) = MkCompose r} (sym $ applicativeHomomorphism {f} {g = gtraversed dR cstrsR (PRet ix) cstrs i} {x = Refl}) $
        Refl
-   gtraversabledCompositionH {c = c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) with (gtraversabledCompositionH dR cstrsR (kdesc arg) (cstrs arg) h i rest)
-     gtraversabledCompositionH {c = c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) | prf =
+   gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) with (gtraversabledCompositionH dR cstrsR (kdesc arg) (cstrs arg) h i rest)
+     gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) | prf =
       replace {P = \r => (MkCompose {f} {g} (pure (pure (MkDPair {P = \arg => PSynthesize (kdesc arg) c (PData dR c) ix } arg)))) <*> r =
                           MkCompose (map {f} (gtraversed {g} dR cstrsR (PArg A kdesc) cstrs i)
                                        (pure (MkDPair arg) <*> (gtraversed dR cstrsR (kdesc arg) (cstrs arg) h rest)))} (sym prf) $
@@ -135,7 +135,8 @@ using (f: Type -> Type, g: Type -> Type)
           ={ Refl }=
         (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i . MkDPair arg)
                                (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
-          ={ cong {f = MkCompose} (fundet mapCompose (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest) ) }=
+          ={ cong {f = MkCompose} $
+             fundet mapCompose (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest) }=
         (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
                                (map (MkDPair arg) (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest)))
           ={ cong {f = (\r => MkCompose (map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
@@ -176,15 +177,23 @@ using (f: Type -> Type, g: Type -> Type)
                                              -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d)
                                              -> (h: a -> f b) -> {ix : Ix} -> (X : PSynthesize d a (PData dR a) ix)
                                              -> transformA {f} {g} (gtraversed dR cstrsR d cstrs h X) =
-                                                  gtraversed {g = g} dR cstrsR d cstrs (transformA {f} {g} . h) X
-    gtraversabledNaturalityH dR cstrsR d cstrs h X = ?gtraversableNaturalityH_rhs
+                                                  gtraversed {g} dR cstrsR d cstrs (transformA {f} {g} . h) X
+    gtraversabledNaturalityH {f} {g} _ _ (PRet ix) _ _ Refl = ?gtraversableNaturalityH_rhs_1 -- transformAPure {f} {g} {a=(ix=ix)} {x=Refl})
+    gtraversabledNaturalityH dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) = ?gtraversableNaturalityH_rhs_2  -- transformAAp + transformAPure
+    gtraversabledNaturalityH dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) = ?gtraversableNaturalityH_rhs_3
+    gtraversabledNaturalityH _ _ (PPar (FS FZ) _)   _ _ _ impossible
+    gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
+    gtraversabledNaturalityH dR cstrsR (PMap f FZ kdesc) cstrs h (ta ** rest) = ?gtraversableNaturalityH_rhs_4
+    gtraversabledNaturalityH _ _ (PMap _ (FS FZ) _) _ _ _ impossible
+    gtraversabledNaturalityH _ _ (PMap _ (FS (FS _)) _) _ _ _ impossible
+    gtraversabledNaturalityH dR cstrsR (PRec ix kdesc) cstrs h (rec ** rest) = ?gtraversableNaturalityH_rhs_5
 
     gtraversableNaturalityH : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
                               {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
                            -> {ix : Ix} -> (X : PData d a ix)
                                         -> transformA {f} {g} (gtraverse d cstrs h X) =
                                              gtraverse d cstrs (transformA {f} {g} . h) X
-    gtraversableNaturalityH d cstrs h X = ?gtraversableNaturalityH_rhs
+    gtraversableNaturalityH d cstrs h (Con x) = ?gtraversableNaturalityH_rhs
 
   gtraversableNaturality : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
                            {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b) ->
