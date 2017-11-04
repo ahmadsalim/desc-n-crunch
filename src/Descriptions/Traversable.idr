@@ -76,6 +76,7 @@ using (f: Type -> Type, g: Type -> Type)
   gtraversableIdentity d constraints = funext (gtraversableIdentityH d constraints)
 -}
 
+{-
   composeTraverseConLemma : (VApplicative f, VApplicative g) => {a,b,c,Ix: _} ->
     (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
    {ix : Ix} -> (h: a -> f b) -> (i : b -> g c) -> (x : PSynthesize d a (PData d a) ix) ->
@@ -161,24 +162,29 @@ using (f: Type -> Type, g: Type -> Type)
                             (h : a -> f b) -> (i : b -> g c) ->
                             gtraverse d constraints (MkCompose {f} {g} . map i . h) = MkCompose . map (gtraverse d constraints i) . gtraverse d constraints h
   gtraversableComposition d constraints h i = funext (gtraversableCompositionH d constraints h i)
+-}
 
   mutual
-    gtraversabledNaturalityH : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+    gtraversabledNaturalityH : (VApplicativeTransformer f g) =>
                                   {a, b, Ix: _} ->
                                   (dr: PDesc 1 Ix) -> (constraintsr: PConstraints1 VTraversable dr) ->
                                   (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
                                   (h: a -> f b) -> {ix : Ix} -> (X : PSynthesize d a (PData dr a) ix) ->
                                   transformA {f} {g} (gtraversed dr constraintsr d constraints h X) =
                                     gtraversed {g = g} dr constraintsr d constraints (transformA {f} {g} . h) X
-    gtraversabledNaturalityH dr constraintsr d constraints h X = ?gtraversableNaturalityH_rhs
+    gtraversabledNaturalityH {f = f} {g = g} dr constraintsr (PRet ix) constraints h Refl = transformAPure {f} {g} {a=(ix=ix)} {x=Refl}
+    gtraversabledNaturalityH dr constraintsr (PArg A kdesc) constraints h X = ?gtraversableNaturalityH_rhs_3
+    gtraversabledNaturalityH dr constraintsr (PPar k kdesc) constraints h X = ?gtraversableNaturalityH_rhs_4
+    gtraversabledNaturalityH dr constraintsr (PMap f k kdesc) constraints h X = ?gtraversableNaturalityH_rhs_5
+    gtraversabledNaturalityH dr constraintsr (PRec ix kdesc) constraints h X = ?gtraversableNaturalityH_rhs_6
 
-    gtraversableNaturalityH : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+    gtraversableNaturalityH : (VApplicativeTransformer f g) =>
                                 {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) ->
                                 (h: a -> f b) -> {ix : Ix} -> (X : PData d a ix) ->
                                 transformA {f} {g} (gtraverse d constraints h X) = gtraverse d constraints (transformA {f} {g} . h) X
     gtraversableNaturalityH d constraints h X = ?gtraversableNaturalityH_rhs
 
-  gtraversableNaturality : (VApplicative f, VApplicative g, VApplicativeTransformer f g) =>
+  gtraversableNaturality : (VApplicativeTransformer f g) =>
                            {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (constraints: PConstraints1 VTraversable d) -> (h: a -> f b) ->
                            transformA {f} {g} . gtraverse d constraints h = gtraverse d constraints (transformA {f} {g} . h)
   gtraversableNaturality {f} {g} d constraints h = funext (\X => gtraversableNaturalityH {f} {g} d constraints h X)

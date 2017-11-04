@@ -233,7 +233,7 @@ using (f : Type -> Type, g : Type -> Type)
 
 using (t : Type -> Type)
   interface (Traversable t) => VTraversable (t : Type -> Type) where
-    traversableNatural : (Applicative f, Applicative g, VApplicativeTransformer f g) => {a, b : Type} -> {h : a -> f b} ->
+    traversableNatural : (VApplicativeTransformer f g) => {a, b : Type} -> {h : a -> f b} ->
                             transformA {f} {g} . traverse {t} h = traverse {t} (transformA {f} {g} . h)
     traversableIdentity : {a : Type} -> traverse {t} MkIdentity = MkIdentity {a = t a}
     traversableComposition : (Applicative f, Applicative g) => {a,b,c : Type} -> {h : a -> f b} -> {i : b -> g c} ->
