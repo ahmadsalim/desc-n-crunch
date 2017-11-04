@@ -17,10 +17,10 @@ using (f: Type -> Type, g: Type -> Type)
 
   mutual
     gtraversed : Applicative g =>
-                 {a,b,Ix: _} -> (dR: PDesc (S Z) Ix) -> (cstrsR: PConstraints1 VTraversable dR)
-                             -> (d: PDesc (S Z) Ix) -> (cstrs: PConstraints1 VTraversable d) -> {ix : Ix}
-                             -> (f: a -> g b) -> PSynthesize d a (PData dR a) ix
-                             -> g (PSynthesize d b (PData dR b) ix)
+                  {a,b,Ix: _} -> (dR: PDesc (S Z) Ix) -> (cstrsR: PConstraints1 VTraversable dR)
+                              -> (d: PDesc (S Z) Ix) -> (cstrs: PConstraints1 VTraversable d)
+                 -> {ix : Ix} -> (f: a -> g b) -> PSynthesize d a (PData dR a) ix
+                              -> g (PSynthesize d b (PData dR b) ix)
     gtraversed _  _      (PRet _)               _                _ Refl          = pure Refl
     gtraversed dR cstrsR (PArg _ kdesc)         cstrs            f (arg ** rest) = pure (MkDPair arg) <*> (gtraversed dR cstrsR (kdesc arg) (cstrs arg) f rest)
     gtraversed dR cstrsR (PPar FZ kdesc)        cstrs            f (p ** rest)   = zipA (f p) (gtraversed dR cstrsR kdesc cstrs f rest)
@@ -150,10 +150,13 @@ using (f: Type -> Type, g: Type -> Type)
        ?gtraversabledCompositionH_rhs
    gtraversabledCompositionH _ _ (PPar (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PPar (FS (FS _)) _) _ _ _ _ impossible
-   gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) cstrs h i X = ?gtraversabledCompositionH_rhs_3
+   gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) with (gtraversabledCompositionH dR cstrsR kdesc vtravr h i rest)
+     gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) | prf =
+       rewrite prf in
+       ?gtraversabledCompositionH_rhs_3
    gtraversabledCompositionH _ _ (PMap _ (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PMap _ (FS (FS _)) _) _ _ _ _ impossible
-   gtraversabledCompositionH dR cstrsR (PRec ix kdesc) cstrs h i X = ?gtraversabledCompositionH_rhs_5
+   gtraversabledCompositionH dR cstrsR (PRec ix kdesc) cstrs h i (rec ** rest) = ?gtraversabledCompositionH_rhs_5
 
    gtraversableCompositionH : (VApplicative f, VApplicative g) =>
                               {a,b,c,Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d)
@@ -175,11 +178,16 @@ using (f: Type -> Type, g: Type -> Type)
     gtraversabledNaturalityH : (VApplicativeTransformer f g) =>
                                {a, b, Ix: _} -> (dR: PDesc 1 Ix) -> (cstrsR: PConstraints1 VTraversable dR)
                                              -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d)
-                                             -> (h: a -> f b) -> {ix : Ix} -> (X : PSynthesize d a (PData dR a) ix)
+                                             -> (h: a -> f b)
+                                -> {ix : Ix} -> (X : PSynthesize d a (PData dR a) ix)
                                              -> transformA {f} {g} (gtraversed dR cstrsR d cstrs h X) =
                                                   gtraversed {g} dR cstrsR d cstrs (transformA {f} {g} . h) X
     gtraversabledNaturalityH {f} {g} _ _ (PRet ix) _ _ Refl = transformAPure {f} {g} {a=(ix=ix)} {x=Refl}
-    gtraversabledNaturalityH dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) = ?gtraversableNaturalityH_rhs_2  -- transformAAp + transformAPure
+    gtraversabledNaturalityH {f} {g} {a} {ix} dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) =
+      (transformA {f} {g} ((pure {f} (MkDPair arg)) <*> (gtraversed {g=f} dR cstrsR (kdesc arg) (cstrs arg) h rest)))
+        ={ ?gtraversableNaturalityH_rhs_2 }=
+      (pure {f=g} (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) (\x => transformA (h x)) rest)
+        QED
     gtraversabledNaturalityH dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) = ?gtraversableNaturalityH_rhs_3
     gtraversabledNaturalityH _ _ (PPar (FS FZ) _)   _ _ _ impossible
     gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
@@ -190,12 +198,13 @@ using (f: Type -> Type, g: Type -> Type)
 
     gtraversableNaturalityH : (VApplicativeTransformer f g) =>
                               {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
-                           -> {ix : Ix} -> (X : PData d a ix)
-                                        -> transformA {f} {g} (gtraverse d cstrs h X) =
-                                             gtraverse d cstrs (transformA {f} {g} . h) X
+                               -> {ix : Ix} -> (X : PData d a ix)
+                                            -> transformA {f} {g} (gtraverse d cstrs h X) =
+                                                 gtraverse d cstrs (transformA {f} {g} . h) X
     gtraversableNaturalityH d cstrs h (Con x) = ?gtraversableNaturalityH_rhs
 
   gtraversableNaturality : (VApplicativeTransformer f g) =>
-                           {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b) ->
-                           transformA {f} {g} . gtraverse d cstrs h = gtraverse d cstrs (transformA {f} {g} . h)
+                           {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
+                                         -> transformA {f} {g} . gtraverse d cstrs h =
+                                              gtraverse d cstrs (transformA {f} {g} . h)
   gtraversableNaturality {f} {g} d cstrs h = funext (\X => gtraversableNaturalityH {f} {g} d cstrs h X)
