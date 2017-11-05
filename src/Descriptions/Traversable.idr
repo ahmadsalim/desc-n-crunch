@@ -9,8 +9,8 @@ import Syntax.PreorderReasoning
 %auto_implicits off
 
 using (f: Type -> Type, g: Type -> Type)
-  vaptrans2apfun : VApplicativeTransformer f g -> Applicative f
-  vaptrans2apfun vapptrans = %implementation
+  vapt2apF : VApplicativeTransformer f g -> Applicative f
+  vapt2apF vapptrans = %implementation
 
   zipD : {a, b : _} -> a -> b -> (x : a ** b)
   zipD x y = (x ** y)
@@ -186,11 +186,15 @@ using (f: Type -> Type, g: Type -> Type)
                                              -> transformA {f} {g} (gtraversed dR cstrsR d cstrs h X) =
                                                   gtraversed {g} dR cstrsR d cstrs (transformA {f} {g} . h) X
     gtraversabledNaturalityH {f} {g} _ _ (PRet ix) _ _ Refl = transformAPure {f} {g} {a=(ix=ix)} {x=Refl}
-    gtraversabledNaturalityH {f} {g} @{at} {a} {ix} dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) =
-      (transformA {f} {g} @{at} ((pure {f} (MkDPair arg)) <*> (gtraversed {g=f} @{vaptrans2apfun at} dR cstrsR (kdesc arg) (cstrs arg) h rest)))
-        ={ transformAAp {f} {g} {x=pure {f} @{vaptrans2apfun at} (MkDPair arg)} {y=gtraversed {g=f} @{vaptrans2apfun at} dR cstrsR (kdesc arg) (cstrs arg) h rest}  }=
-      (transformA {f} {g} @{at} ((pure {f} (MkDPair arg))) <*> (transformA {f} {g} @{at} (gtraversed {g=f} @{vaptrans2apfun at} {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest)))
-        ={ ?gtraversableNaturalityH_rhs_2_2 }=
+    gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) =
+      (transformA {f} {g} @{at} (pure {f} (MkDPair arg) <*> gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest))
+        ={ transformAAp {f} {g} {x=pure {f} @{vapt2apF at} (MkDPair arg)} {y=gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest}  }=
+      (transformA {f} {g} @{at} (pure {f} (MkDPair arg)) <*> transformA {f} {g} @{at} (gtraversed @{vapt2apF at} {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
+        ={ cong {f = \r => r <*> transformA (gtraversed dR cstrsR (kdesc arg) (cstrs arg) h rest)} $
+           transformAPure {f} {g} {x=MkDPair arg} }=
+      (pure {f=g} (MkDPair arg) <*> transformA {f} {g} @{at} (gtraversed @{vapt2apF at} {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
+        ={ cong {f = \r => pure (MkDPair arg) <*> r} $
+           gtraversabledNaturalityH {f} {g} dR cstrsR (kdesc arg) (cstrs arg) h rest }=
       (pure {f=g} (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) (\x => transformA (h x)) rest)
         QED
     gtraversabledNaturalityH dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) = ?gtraversableNaturalityH_rhs_3
