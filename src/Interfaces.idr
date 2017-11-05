@@ -28,8 +28,14 @@ interface Functor f => VFunctor (f : Type -> Type) where
   mapId      : {a : Type} -> map (id {a}) = id {a = f a}
   mapCompose : {a,b,c : Type} -> {g : b -> c} -> {h : a -> b} -> map {f} (g . h) = map g . map h
 
+VFun2Fun : (VFunctor f) => Functor f
+VFun2Fun = %implementation
+
+Ap2Fun : (Applicative f) => Functor f
+Ap2Fun = %implementation
 
 interface (Applicative f, VFunctor f) => VApplicative (f : Type -> Type) where
+  applicativeVFunctorCoherence : VFun2Fun {f} = Ap2Fun {f}
   applicativeId : {a : Type} -> {v : f a} -> pure Basics.id <*> v = v
   applicativeCompose : {a,b,c : Type} -> {u : f (b -> c)} -> {v : f (a -> b)} -> {w : f a} -> pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
   applicativeHomomorphism : {a,b : Type} -> {g : a -> b} -> {x : a} -> (<*>) {f} (pure g) (pure x) = pure {f} (g x)
@@ -58,6 +64,7 @@ implementation Applicative Identity where
   (MkIdentity f) <*> (MkIdentity x) = MkIdentity (f x)
 
 implementation VApplicative Identity where
+  applicativeVFunctorCoherence = Refl
   applicativeId {v = MkIdentity _} = Refl
   applicativeCompose {u = MkIdentity _} {v = MkIdentity _} {w = MkIdentity _} = Refl
   applicativeHomomorphism = Refl
@@ -72,7 +79,6 @@ using (f : Type -> Type, g : Type -> Type, a : Type)
 using (f : Type -> Type, g : Type -> Type)
   implementation (Functor f, Functor g) => Functor (Compose f g) where
     map h (MkCompose x) = MkCompose (map (map h) x)
-
 
   implementation (VFunctor f, VFunctor g) => VFunctor (Compose f g) where
     mapId {a} {f} {g} =
@@ -97,6 +103,9 @@ using (f : Type -> Type, g : Type -> Type)
     (MkCompose h) <*> (MkCompose x) = MkCompose (pure (<*>) <*> h <*> x)
 
   implementation (VApplicative f, VApplicative g) => VApplicative (Compose f g) where
+    applicativeVFunctorCoherence =
+      rewrite applicativeVFunctorCoherence {f = f} in
+      rewrite applicativeVFunctorCoherence {f = g} in Refl
     applicativeId {v = MkCompose x'} =
       (MkCompose (pure (<*>) <*> (pure (pure id)) <*> x'))
          ={ cong {f = MkCompose} (replace {P = \w => w <*> x' = pure (\x => pure id <*> x) <*> x'}
