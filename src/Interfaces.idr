@@ -47,6 +47,19 @@ interface (VApplicative f, VApplicative g) => VApplicativeTransformer (f : Type 
   transformAPure : {a : Type} -> {x : a} -> transformA (pure x) = pure x
   transformAAp   : {a,b : Type} -> {x : f (a -> b)} -> {y : f a} -> transformA (x <*> y) = transformA x <*> transformA y
 
+transformAMap : (VApplicativeTransformer f g) => {a,b : Type} -> {h : a -> b} -> {x : f a} -> transformA {f} {g} (map {f} h x) = map {f=g} h (transformA {f} {g} x)
+transformAMap {f} {g} {h} {x} =
+  (transformA (map {f} h x))
+    ={ cong {f=\z=>transformA (z x)} $ applicativeMap {u=h} }=
+  (transformA (pure {f} h <*> x))
+    ={ transformAAp {x = pure {f} h} {y=x} }=
+  (transformA (pure {f} h) <*> transformA x)
+    ={ cong {f=\z=>z <*> transformA x} $ transformAPure {x=h} }=
+  (pure {f=g} h <*> transformA x)
+    ={ cong {f=\z=>z (transformA x)} $ sym $ applicativeMap {u=h} }=
+  (map {f=g} h (transformA x))
+    QED
+
 using (a : Type)
   record Identity a where
     constructor MkIdentity
