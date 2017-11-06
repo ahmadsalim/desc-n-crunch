@@ -43,7 +43,7 @@ using (f: Type -> Type, g: Type -> Type)
     gtraverse : Applicative g => {a,b,Ix: _} -> (d: PDesc (S Z) Ix) -> (PConstraints1 VTraversable d) -> {ix : Ix}
                                              -> (f: a -> g b) -> PData d a ix -> g (PData d b ix)
     gtraverse d cstrs f (Con x) = assert_total $ pure Con <*> gtraversed d cstrs d cstrs f x
-
+    
   mutual
     gtraversabledIdentityH : {a,Ix: _} -> (dR: PDesc 1 Ix) -> (cstrsR: PConstraints1 VTraversable dR)
                                        -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d)
@@ -220,7 +220,7 @@ using (f: Type -> Type, g: Type -> Type)
         QED
     gtraversabledNaturalityH _ _ (PPar (FS FZ) _)   _ _ _ impossible
     gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
-    gtraversabledNaturalityH dR cstrsR (PMap f FZ kdesc) cstrs h (ta ** rest) = ?gtraversableNaturalityH_rhs_4
+    gtraversabledNaturalityH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h (ta ** rest) = ?gtraversableNaturalityH_rhs_1
     gtraversabledNaturalityH _ _ (PMap _ (FS FZ) _) _ _ _ impossible
     gtraversabledNaturalityH _ _ (PMap _ (FS (FS _)) _) _ _ _ impossible
     gtraversabledNaturalityH dR cstrsR (PRec ix kdesc) cstrs h (rec ** rest) = ?gtraversableNaturalityH_rhs_5
@@ -230,7 +230,17 @@ using (f: Type -> Type, g: Type -> Type)
                                -> {ix : Ix} -> (X : PData d a ix)
                                             -> transformA {f} {g} (gtraverse d cstrs h X) =
                                                  gtraverse d cstrs (transformA {f} {g} . h) X
-    gtraversableNaturalityH d cstrs h (Con x) = ?gtraversableNaturalityH_rhs
+    gtraversableNaturalityH {f} {g} @{at} {ix} d cstrs h (Con x) =
+      (transformA @{at} {f} {g} ((<*>) {f = f} (pure {f = f} @{vapt2apF at} Con) (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x)))
+       ={ transformAAp {f} {g} @{at} }=
+      (((<*>) {f = g} @{vapt2apG at} (transformA @{at} {f} {g} (pure {f = f} @{vapt2apF at} Con))
+                           (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x))))
+        ={ cong {f = \z => z <*> (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x)) } (transformAPure {f} {g} @{at}) }=
+      (((<*>) {f = g} @{vapt2apG at} (pure {f = g} @{vapt2apG at} Con)
+                           (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x))))
+        ={ cong {f = \z => pure {f = g} @{vapt2apG at} Con <*> z } (gtraversabledNaturalityH @{at} d cstrs d cstrs h x) }=
+      ((<*>) @{vapt2apG at} (pure {f = g} @{vapt2apG at} Con) (gtraversed {g = g} @{vapt2apG at} {ix} d cstrs d cstrs (transformA @{at} {f} {g} . h) x))
+       QED
 
   gtraversableNaturality : (VApplicativeTransformer f g) =>
                            {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
