@@ -10,7 +10,13 @@ import Syntax.PreorderReasoning
 
 using (f: Type -> Type, g: Type -> Type)
   vapt2apF : VApplicativeTransformer f g -> Applicative f
-  vapt2apF vapptrans = %implementation
+  vapt2apF vappt = %implementation
+
+  vapt2apG : VApplicativeTransformer f g -> Applicative g
+  vapt2apG vappt = %implementation
+
+  ap2fun : Applicative f -> Functor f
+  ap2fun ap = %implementation
 
   zipD : {a, b : _} -> a -> b -> (x : a ** b)
   zipD x y = (x ** y)
@@ -188,7 +194,7 @@ using (f: Type -> Type, g: Type -> Type)
     gtraversabledNaturalityH {f} {g} _ _ (PRet ix) _ _ Refl = transformAPure {f} {g} {a=(ix=ix)} {x=Refl}
     gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) =
       (transformA {f} {g} @{at} (pure {f} (MkDPair arg) <*> gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest))
-        ={ transformAAp {f} {g} {x=pure {f} @{vapt2apF at} (MkDPair arg)} {y=gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest}  }=
+        ={ transformAAp {f} {g} {x=pure {f} @{vapt2apF at} (MkDPair arg)} {y=gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest} }=
       (transformA {f} {g} @{at} (pure {f} (MkDPair arg)) <*> transformA {f} {g} @{at} (gtraversed @{vapt2apF at} {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
         ={ cong {f = \r => r <*> transformA (gtraversed dR cstrsR (kdesc arg) (cstrs arg) h rest)} $
            transformAPure {f} {g} {x=MkDPair arg} }=
@@ -196,8 +202,19 @@ using (f: Type -> Type, g: Type -> Type)
         ={ cong {f = \r => pure (MkDPair arg) <*> r} $
            gtraversabledNaturalityH {f} {g} dR cstrsR (kdesc arg) (cstrs arg) h rest }=
       (pure {f=g} (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) (\x => transformA (h x)) rest)
+           QED
+    gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) =
+      (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ transformAAp {f} {g} {x = map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par)} {y = gtraversed {ix} dR cstrsR kdesc cstrs h rest} }=
+      (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ ?help }=
+--        ={ cong {f=\z=>z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
+--           transformAMap {h=zipD} {x=h par} }=
+      (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (transformA {f} {g} (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ cong {f=\z=> map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (transformA {f} {g} (h par)) <*> z} $
+           gtraversabledNaturalityH {f} {g} dR cstrsR kdesc cstrs h rest }=
+      (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (transformA {f} {g} (h par)) <*> gtraversed {ix} dR cstrsR kdesc cstrs (\x => transformA (h x)) rest)
         QED
-    gtraversabledNaturalityH dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) = ?gtraversableNaturalityH_rhs_3
     gtraversabledNaturalityH _ _ (PPar (FS FZ) _)   _ _ _ impossible
     gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
     gtraversabledNaturalityH dR cstrsR (PMap f FZ kdesc) cstrs h (ta ** rest) = ?gtraversableNaturalityH_rhs_4
