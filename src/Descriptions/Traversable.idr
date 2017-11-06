@@ -202,14 +202,17 @@ using (f: Type -> Type, g: Type -> Type)
         ={ cong {f = \r => pure (MkDPair arg) <*> r} $
            gtraversabledNaturalityH {f} {g} dR cstrsR (kdesc arg) (cstrs arg) h rest }=
       (pure {f=g} (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) (\x => transformA (h x)) rest)
-           QED
+        QED
     gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) =
       (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
         ={ transformAAp {f} {g} {x = map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par)} {y = gtraversed {ix} dR cstrsR kdesc cstrs h rest} }=
       (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
-        ={ ?help }=
---        ={ cong {f=\z=>z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
---           transformAMap {h=zipD} {x=h par} }=
+        ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
+      (transformA {f} {g} (map {f} zipD (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ cong {f=\z=>z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
+           transformAMap {h=zipD} {x=h par} }=
+      (map {f=g} zipD (transformA {f} {g} (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ rewrite applicativeVFunctorCoherence {f=g} in Refl }=
       (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (transformA {f} {g} (h par)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
         ={ cong {f=\z=> map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (transformA {f} {g} (h par)) <*> z} $
            gtraversabledNaturalityH {f} {g} dR cstrsR kdesc cstrs h rest }=
