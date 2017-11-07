@@ -43,7 +43,7 @@ using (f: Type -> Type, g: Type -> Type)
     gtraverse : Applicative g => {a,b,Ix: _} -> (d: PDesc (S Z) Ix) -> (PConstraints1 VTraversable d) -> {ix : Ix}
                                              -> (f: a -> g b) -> PData d a ix -> g (PData d b ix)
     gtraverse d cstrs f (Con x) = assert_total $ pure Con <*> gtraversed d cstrs d cstrs f x
-    
+
   mutual
     gtraversabledIdentityH : {a,Ix: _} -> (dR: PDesc 1 Ix) -> (cstrsR: PConstraints1 VTraversable dR)
                                        -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d)
@@ -220,7 +220,6 @@ using (f: Type -> Type, g: Type -> Type)
         QED
     gtraversabledNaturalityH _ _ (PPar (FS FZ) _)   _ _ _ impossible
     gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
-<<<<<<< HEAD
     gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PMap _ FZ kdesc) (_, vtravr) h (ta ** rest) =
       (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (traverse h ta) <*> gtraversed {ix} dR cstrsR kdesc vtravr h rest))
         ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
@@ -239,9 +238,6 @@ using (f: Type -> Type, g: Type -> Type)
            gtraversabledNaturalityH {f} {g} dR cstrsR kdesc vtravr h rest }=
       (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (traverse (\x => transformA {f} {g} (h x)) ta) <*> gtraversed {ix} dR cstrsR kdesc vtravr (\x => transformA (h x)) rest)
          QED
-=======
-    gtraversabledNaturalityH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h (ta ** rest) = ?gtraversableNaturalityH_rhs_1
->>>>>>> 5bbb7398bf0a158dc55efacd6e5ba5c0aa71c3eb
     gtraversabledNaturalityH _ _ (PMap _ (FS FZ) _) _ _ _ impossible
     gtraversabledNaturalityH _ _ (PMap _ (FS (FS _)) _) _ _ _ impossible
     gtraversabledNaturalityH dR cstrsR (PRec ix kdesc) cstrs h (rec ** rest) = ?gtraversableNaturalityH_rhs_5
