@@ -231,9 +231,9 @@ using (f: Type -> Type, g: Type -> Type)
     gtraversabledNaturalityH _ _ (PPar (FS (FS _)) _) _ _ _ impossible
     gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PMap _ FZ kdesc) (_, vtravr) h (ta ** rest) =
       (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (traverse h ta) <*> gtraversed {ix} dR cstrsR kdesc vtravr h rest))
-        ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
+         ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
       (transformA {f} {g} (map {f} zipD (traverse h ta) <*> gtraversed {ix} dR cstrsR kdesc vtravr h rest))
-        ={ transformAAp {f} {g} {x = map {f} zipD (traverse h ta)} {y = gtraversed {ix} dR cstrsR kdesc vtravr h rest} }=
+         ={ transformAAp {f} {g} {x = map {f} zipD (traverse h ta)} {y = gtraversed {ix} dR cstrsR kdesc vtravr h rest} }=
       (transformA {f} {g} (map {f} zipD (traverse h ta)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc vtravr h rest))
          ={ cong {f=\z=>z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc vtravr h rest)} $
             transformAMap {h=zipD} {x=traverse h ta} }=
