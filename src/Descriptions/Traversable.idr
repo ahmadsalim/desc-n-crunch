@@ -240,14 +240,43 @@ using (f: Type -> Type, g: Type -> Type)
          QED
     gtraversabledNaturalityH _ _ (PMap _ (FS FZ) _) _ _ _ impossible
     gtraversabledNaturalityH _ _ (PMap _ (FS (FS _)) _) _ _ _ impossible
-    gtraversabledNaturalityH dR cstrsR (PRec ix kdesc) cstrs h (rec ** rest) = ?gtraversableNaturalityH_rhs_5
+    gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PRec _ kdesc) cstrs h (rec ** rest) =
+      (transformA {f} {g} (map @{ap2fun {f} $ vapt2apF at} zipD (gtraverse dR cstrsR h rec) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
+      (transformA {f} {g} (map zipD (gtraverse dR cstrsR h rec) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ transformAAp {f} {g} {x = map {f} zipD (gtraverse dR cstrsR h rec)} {y = gtraversed {ix} dR cstrsR kdesc cstrs h rest} }=
+      (transformA {f} {g} (map zipD (gtraverse dR cstrsR h rec)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ cong {f=\z=>z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
+           transformAMap {h=zipD} {x=gtraverse dR cstrsR h rec} }=
+      (map {f=g} zipD (transformA {f} {g} (gtraverse dR cstrsR h rec)) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ cong {f=\z=>map {f=g} zipD z <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
+           gtraversableNaturalityH dR cstrsR h rec }=
+      (map {f=g} zipD (gtraverse dR cstrsR (\x => transformA (h x)) rec) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ rewrite applicativeVFunctorCoherence {f=g} in Refl }=
+      (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (gtraverse dR cstrsR (\x => transformA (h x)) rec) <*> transformA {f} {g} (gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+        ={ cong {f=\z=>map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (gtraverse dR cstrsR (\x => transformA (h x)) rec) <*> z} $
+           gtraversabledNaturalityH {f} {g} dR cstrsR kdesc cstrs h rest }=
+      (map {f=g} @{ap2fun {f=g} $ vapt2apG at} zipD (gtraverse dR cstrsR (\x => transformA (h x)) rec) <*> gtraversed {ix} dR cstrsR kdesc cstrs (\x => transformA (h x)) rest)
+        QED
 
     gtraversableNaturalityH : (VApplicativeTransformer f g) =>
                               {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
                                -> {ix : Ix} -> (X : PData d a ix)
                                             -> transformA {f} {g} (gtraverse d cstrs h X) =
                                                  gtraverse d cstrs (transformA {f} {g} . h) X
-    gtraversableNaturalityH d cstrs h (Con x) = ?gtraversableNaturalityH_rhs
+    gtraversableNaturalityH {f} {g} @{at} {ix} d cstrs h (Con x) =
+      (transformA @{at} {f} {g} ((<*>) {f} (pure {f} @{vapt2apF at} Con) (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x)))
+        ={ transformAAp {f} {g} @{at} }=
+      ((<*>) {f = g} @{vapt2apG at} (transformA @{at} {f} {g} (pure {f} @{vapt2apF at} Con))
+                           (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x)))
+        ={ cong {f = \z => z <*> (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x))} $
+           transformAPure {f} {g} @{at} }=
+      ((<*>) {f = g} @{vapt2apG at} (pure {f = g} @{vapt2apG at} Con)
+                           (transformA @{at} {f} {g} (gtraversed {g = f} @{vapt2apF at} {ix} d cstrs d cstrs h x)))
+        ={ cong {f = \z => pure {f = g} @{vapt2apG at} Con <*> z } $
+           gtraversabledNaturalityH @{at} d cstrs d cstrs h x }=
+      ((<*>) @{vapt2apG at} (pure {f = g} @{vapt2apG at} Con) (gtraversed {g} @{vapt2apG at} {ix} d cstrs d cstrs (transformA @{at} {f} {g} . h) x))
+       QED
 
   gtraversableNaturality : (VApplicativeTransformer f g) =>
                            {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
