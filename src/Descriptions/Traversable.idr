@@ -15,6 +15,9 @@ using (f: Type -> Type, g: Type -> Type)
   vapt2apG : VApplicativeTransformer f g -> Applicative g
   vapt2apG vappt = %implementation
 
+  vap2ap : VApplicative f -> Applicative f
+  vap2ap vapp = %implementation
+
   ap2fun : Applicative f -> Functor f
   ap2fun ap = %implementation
 
@@ -153,10 +156,16 @@ using (f: Type -> Type, g: Type -> Type)
         (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
                                (pure (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
           QED
-   gtraversabledCompositionH dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) with (gtraversabledCompositionH dR cstrsR kdesc cstrs h i rest)
-     gtraversabledCompositionH dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) | prf =
-       rewrite prf in
-       ?gtraversabledCompositionH_rhs
+   gtraversabledCompositionH {f} {g} @{af} @{ag} {ix} dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) =
+     ((<*>) @{the (Applicative (Compose f g)) %implementation}
+            (MkCompose (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))))
+            (gtraversed {ix} dR cstrsR kdesc cstrs (\x => MkCompose {f} {g} (map i (h x))) rest))
+       ={ cong {f=\z=> (MkCompose (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*> z} $
+          gtraversabledCompositionH dR cstrsR kdesc cstrs h i rest }=
+     (MkCompose (pure (<*>) <*> map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*> map (gtraversed {ix} dR cstrsR kdesc cstrs i) (gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
+       ={ ?gtraversabledCompositionH_rhs2 }=
+     (MkCompose (map (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) (map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
+       QED
    gtraversabledCompositionH _ _ (PPar (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PPar (FS (FS _)) _) _ _ _ _ impossible
    gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) with (gtraversabledCompositionH dR cstrsR kdesc vtravr h i rest)
@@ -202,7 +211,7 @@ using (f: Type -> Type, g: Type -> Type)
         ={ cong {f = \r => pure (MkDPair arg) <*> r} $
            gtraversabledNaturalityH {f} {g} dR cstrsR (kdesc arg) (cstrs arg) h rest }=
       (pure {f=g} (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) (\x => transformA (h x)) rest)
-           QED
+        QED
     gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PPar FZ kdesc) cstrs h (par ** rest) =
       (transformA {f} {g} (map {f} @{ap2fun {f} $ vapt2apF at} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
         ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
@@ -276,7 +285,7 @@ using (f: Type -> Type, g: Type -> Type)
         ={ cong {f = \z => pure {f = g} @{vapt2apG at} Con <*> z } $
            gtraversabledNaturalityH @{at} d cstrs d cstrs h x }=
       ((<*>) @{vapt2apG at} (pure {f = g} @{vapt2apG at} Con) (gtraversed {g} @{vapt2apG at} {ix} d cstrs d cstrs (transformA @{at} {f} {g} . h) x))
-       QED
+        QED
 
   gtraversableNaturality : (VApplicativeTransformer f g) =>
                            {a, b, Ix: _} -> (d: PDesc 1 Ix) -> (cstrs: PConstraints1 VTraversable d) -> (h: a -> f b)
