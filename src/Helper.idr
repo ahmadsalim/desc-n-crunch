@@ -28,26 +28,36 @@ composeFun : {argtys, rty, argtys', rty' : _} -> FunTy argtys rty -> FunTy (rty:
 composeFun {argtys = []} v g = g v
 composeFun {argtys = _ :: _} f g = \x => composeFun (f x) g
 
-public export
+export
 soToEq : So b -> b = True
 soToEq Oh = Refl
 
-public export
+export
 eqToSo : b = True -> So b
 eqToSo Refl = Oh
 
-public export
-soNotSo : So b -> So (not b) -> Void
+export
+soNotSo : So (not b) -> So b -> Void
 soNotSo Oh Oh impossible
 
-public export
+export
+notSoSo : (So b -> Void) -> So (not b)
+notSoSo {b} contra with (choose b)
+  notSoSo contra | (Left so) = void (contra so)
+  notSoSo contra | (Right notso) = notso
+
+export
 soAndSo : So (a && b) -> (So a, So b)
 soAndSo {a} {b} soand with (choose a)
   soAndSo {a = True}  soand | Left Oh = (Oh, soand)
   soAndSo {a = False} Oh    | Right Oh impossible
   soAndSo {a = True}  Oh    | Right Oh impossible
 
-public export
+export
+andSoSo : So a -> So b -> So (a && b)
+andSoSo Oh sob = sob
+
+export
 soOrSo : So (a || b) -> Either (So a) (So b)
 soOrSo {a} {b} soor with (choose a)
   soOrSo {a = True}  _    | Left Oh = Left Oh
@@ -55,30 +65,47 @@ soOrSo {a} {b} soor with (choose a)
   soOrSo {a = False} soor | Right Oh = Right soor
   soOrSo {a = True}  _    | Right Oh impossible
 
-public export
+export
+orSoSo : Either (So a) (So b) -> So (a || b)
+orSoSo (Left Oh) = Oh
+orSoSo {a = False} (Right Oh) = Oh
+orSoSo {a = True} (Right Oh) = Oh
+
+export
 dpairEq : {a: Type} -> {P: a -> Type} -> {x, x' : a} -> {y : P x} -> {y' : P x'} -> (p : x = x') -> y = y' -> (x ** y) = (x' ** y')
 dpairEq Refl Refl = Refl
 
-public export
+export
 dpairFstInjective : {x,y,xs,ys: _} -> (x ** xs) = (y ** ys) -> x = y
 dpairFstInjective Refl = Refl
 
-public export
+export
 dpairSndInjective : {x,y,xs,ys: _} -> (x ** xs) = (y ** ys) -> xs = ys
 dpairSndInjective Refl = Refl
 
-postulate -- HOPEFULLY NOTHING GOES WRONG
-  public export
+export
+unitEta : {x : Unit} -> x = ()
+unitEta {x = ()} = Refl
+
+export
+pairEta : {x : (a, b)} -> x = (fst x, snd x)
+pairEta {x = (y, z)} = Refl
+
+export
+dpairEta : {x : (a ** b)} -> x = (fst x ** snd x)
+dpairEta {x = (y ** z)} = Refl
+
+postulate export -- Should be OK
   funext : {a,b : Type} -> {f, g : a -> b} -> ((x : a) -> f x = g x) -> f = g
 
-public export
+export
 fundet : {a, b : Type} -> {f, g : a -> b} -> f = g -> (x : a) -> f x = g x
 fundet {f} {g = f} Refl x = Refl
 
-public export
+export
 Uninhabited (Left _ = Right _) where
   uninhabited Refl impossible
 
-public export
+export
 Uninhabited (Right _ = Left _) where
   uninhabited Refl impossible

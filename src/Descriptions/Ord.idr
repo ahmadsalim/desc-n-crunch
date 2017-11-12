@@ -122,7 +122,7 @@ mutual
         gleqdReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (arg ** rest) | Left _ | Left _ | Refl =
           assert_total $ gleqdReflexive dR cstrsR (kdesc arg) (sordr arg) rest
       gleqdReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (arg ** rest) | Left _ | Right _ = Oh -- This seems counter-intuitive but looks true-ish
-    gleqdReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (arg ** rest) | Right r = void (soNotSo (leqReflexive {x = arg}) r)
+    gleqdReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (arg ** rest) | Right r = void (soNotSo r (leqReflexive {x = arg}))
   gleqdReflexive dR cstrsR (Rec _ kdesc) cstrs (rec ** rest) =
     rewrite soToEq (assert_total $ gleqReflexive dR cstrsR rec) in
     rewrite soToEq (assert_total $ gleqReflexive dR cstrsR rec) in
@@ -150,17 +150,17 @@ mutual
             gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) | Left l | Left x | Refl | Right r | Left y with (leqAntisymmetricReflective {x = a} {y = a} x y)
               gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) | Left _ | Left _ | Refl | Right _ | Left _ | Refl =
                 assert_total $ gleqdTotal dR cstrsR (kdesc a) (sordr a) r1 r2
-            gleqdTotal _  _            _             _          _         _         | Left _ | Left x | Refl | Right _ | Right y = void (soNotSo x y)
+            gleqdTotal _  _            _             _          _         _         | Left _ | Left x | Refl | Right _ | Right y = void (soNotSo y x)
       gleqdTotal _  _            _               _          _         _         | Left _ | Right _ = Left Oh
     gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) | Right r with (choose (a2 <= a1))
       gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) | Right r | Left l with (choose (a1 <= a2))
         gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) | Right r | Left l | Left x with (leqAntisymmetricReflective {x = a2} {y = a1} l x)
-          gleqdTotal _ _ _ _ _ _ | Right r | Left l | Left _ | Refl = void (soNotSo l r)
+          gleqdTotal _ _ _ _ _ _ | Right r | Left l | Left _ | Refl = void (soNotSo r l)
         gleqdTotal _  _            _               _          _         _         | Right _ | Left _ | Right _ = Right Oh
       gleqdTotal dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) | Right r | Right x =
         case leqTotal {x = a1} {y = a2} of
-          Left l => void (soNotSo l r)
-          Right y => void (soNotSo y x)
+          Left l => void (soNotSo r l)
+          Right y => void (soNotSo x y)
   gleqdTotal dR cstrsR (Rec _ kdesc) cstrs (ra1 ** r1) (ra2 ** r2) with (gleq dR cstrsR ra1 ra2) proof ra1leqra2
     gleqdTotal dR cstrsR (Rec _ kdesc) cstrs (ra1 ** r1) (ra2 ** r2) | False with (gleq dR cstrsR ra2 ra1) proof ra2leqra1
       gleqdTotal dR cstrsR (Rec _ kdesc) cstrs (ra1 ** r1) (ra2 ** r2) | False | False with (assert_total $ gleqTotal dR cstrsR ra1 ra2)
@@ -216,8 +216,8 @@ mutual
             gleqdAntisymmetricReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) xleqy yleqx | Left l | Left x | Refl | Left y | Left z with (leqAntisymmetricReflective {x = a} {y = a} x z)
               gleqdAntisymmetricReflexive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) xleqy yleqx | Left l | Left x | Refl | Left y | Left z | Refl =
                 assert_total $ cong {f=\x=>(a**x)} $ gleqdAntisymmetricReflexive dR cstrsR (kdesc a) (sordr a) r1 r2 xleqy yleqx
-            gleqdAntisymmetricReflexive _  _            _             _          _         _         _     _     | Left _ | Left x | Refl | Left _ | Right r = void (soNotSo x r)
-          gleqdAntisymmetricReflexive _  _            _             _          _         _         xleqy _     | Left _ | Left _ | Refl | Right y = void (soNotSo xleqy y)
+            gleqdAntisymmetricReflexive _  _            _             _          _         _         _     _     | Left _ | Left x | Refl | Left _ | Right r = void (soNotSo r x)
+          gleqdAntisymmetricReflexive _  _            _             _          _         _         xleqy _     | Left _ | Left _ | Refl | Right y = void (soNotSo y xleqy)
       gleqdAntisymmetricReflexive _  _            _             _          _          _          _     yleqx | Left _ | Right _ = absurd yleqx
     gleqdAntisymmetricReflexive _  _            _             _          _         _         xleqy _ | Right _ = absurd xleqy
   gleqdAntisymmetricReflexive dR cstrsR (Rec _ kdesc) cstrs (ra1 ** r1) (ra2 ** r2) xleqy yleqx with (gleq dR cstrsR ra1 ra2) proof ra1leqra2
@@ -265,13 +265,13 @@ mutual
                   gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a ** r3) xleqz zleqy | Left l | Left x | Refl | Left y | Left z | Left w | Refl | Refl with (leqAntisymmetricReflective {x = a} {y = a} z w)
                     gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a ** r3) xleqz zleqy | Left l | Left x | Refl | Left y | Left z | Left w | Refl | Refl | Refl =
                       assert_total $ gleqdTransitive dR cstrsR (kdesc a) (sordr a) r1 r2 r3 xleqz zleqy
-              gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | Left l | Left x | Refl | Left y | Left z | Right r = void (soNotSo y r)
+              gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | Left l | Left x | Refl | Left y | Left z | Right r = void (soNotSo r y)
             gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | Left l | Left x | Refl | Left y | Right r = absurd zleqy
           gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a ** r1) (a ** r2) (a3 ** r3) xleqz zleqy | Left l | Left x | Refl | Right r = absurd xleqz
       gleqdTransitive _ _ (Arg _ _) (_, _) (_ ** _) (_ ** _) (_ ** _) _ _ | Left _ | Right _ = Oh
     gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | Right r with (choose (a1 <= a3))
       gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | Right r | Left l with (choose (a3 <= a2))
-        gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | Right r | Left l | Left x = void (soNotSo (leqTransitive {x = a1} {z = a3} {y = a2} l x) r)
+        gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | Right r | Left l | Left x = void (soNotSo r (leqTransitive {x = a1} {z = a3} {y = a2} l x))
         gleqdTransitive _  _            _             _          _          _          _          _     zleqy | Right _ | Left _ | Right _ = absurd zleqy
       gleqdTransitive dR cstrsR (Arg _ kdesc) (_, sordr) (a1 ** r1) (a2 ** r2) (a3 ** r3) xleqz zleqy | Right _ | Right _ = absurd xleqz
   gleqdTransitive dR cstrsR (Rec _ kdesc) cstrs (ra1 ** r1) (ra2 ** r2) (ra3 ** r3) xleqz zleqy with (gleq dR cstrsR ra1 ra2) proof ra1leqra2

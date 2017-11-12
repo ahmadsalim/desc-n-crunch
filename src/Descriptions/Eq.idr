@@ -62,7 +62,7 @@ mutual
     geqdReflexive dR cstrsR (Arg _ kdesc) (seqa, seqr) (arg ** rest) | Left l with (eqReflective @{seqa} l)
       geqdReflexive dR cstrsR (Arg _ kdesc) (_, seqr) (arg ** rest) | Left _ | Refl =
         assert_total $ geqdReflexive dR cstrsR (kdesc arg) (seqr arg) rest
-    geqdReflexive _  _            _             _            (arg ** _)    | Right r = void (soNotSo (eqReflexive {x = arg}) r)
+    geqdReflexive _  _            _             _            (arg ** _)    | Right r = void (soNotSo r (eqReflexive {x = arg}))
   geqdReflexive dR cstrsR (Rec _ kdesc) cstrs (rec ** rest) with (assert_total $ geqReflexive dR cstrsR rec)
     geqdReflexive dR cstrsR (Rec _ kdesc) cstrs (_ ** rest) | recrefl =
       rewrite soToEq recrefl in geqdReflexive dR cstrsR kdesc cstrs rest
