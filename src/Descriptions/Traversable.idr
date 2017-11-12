@@ -164,14 +164,16 @@ using (f: Type -> Type, g: Type -> Type)
           gtraversabledCompositionH dR cstrsR kdesc cstrs h i rest }=
      (MkCompose (pure (<*>) <*> map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*> map (gtraversed {ix} dR cstrsR kdesc cstrs i) (gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        ={ ?gtraversabledCompositionH_rhs2 }=
+     (MkCompose (pure (.) <*> pure (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) <*> map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+       ={ cong {f = MkCompose} applicativeCompose }=
+     (MkCompose (pure (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) <*> (map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
+      ={ cong {f=\z => MkCompose (z (map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))} $
+          sym applicativeMap }=
      (MkCompose (map (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) (map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        QED
    gtraversabledCompositionH _ _ (PPar (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PPar (FS (FS _)) _) _ _ _ _ impossible
-   gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) with (gtraversabledCompositionH dR cstrsR kdesc vtravr h i rest)
-     gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) | prf =
-       rewrite prf in
-       ?gtraversabledCompositionH_rhs_3
+   gtraversabledCompositionH dR cstrsR (PMap f FZ kdesc) (vtrava, vtravr) h i (ta ** rest) = ?gtraversabledCompositionH_rhs_4
    gtraversabledCompositionH _ _ (PMap _ (FS FZ) _) _ _ _ _ impossible
    gtraversabledCompositionH _ _ (PMap _ (FS (FS _)) _) _ _ _ _ impossible
    gtraversabledCompositionH dR cstrsR (PRec ix kdesc) cstrs h i (rec ** rest) = ?gtraversabledCompositionH_rhs_5
