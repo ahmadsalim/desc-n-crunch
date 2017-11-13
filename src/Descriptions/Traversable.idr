@@ -156,7 +156,7 @@ using (f: Type -> Type, g: Type -> Type)
         (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
                                (pure (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
           QED
-   gtraversabledCompositionH {f} {g} @{af} @{ag} {ix} dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) =
+   gtraversabledCompositionH {f} {g} {c} @{af} @{ag} {ix} dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) =
      ((<*>) @{the (Applicative (Compose f g)) %implementation}
             (MkCompose (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))))
             (gtraversed {ix} dR cstrsR kdesc cstrs (\x => MkCompose {f} {g} (map i (h x))) rest))
@@ -172,10 +172,10 @@ using (f: Type -> Type, g: Type -> Type)
      (MkCompose (pure (<*>) <*>
                    map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*>
                      (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
-       -- FIXME
-       ={ cong {f=\z=> MkCompose $ z (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
-                                        (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
-          sym $ applicativeMap }=
+       ={ cong {f=\q=> MkCompose $ (<*>) {f} {b = g (x : c ** Synthesize (PDescToDesc $ PUnfold kdesc c) (Data $ PDescToDesc $ PUnfold dR c) ix)}
+                                      (q $ map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))
+                                      (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
+          sym $ applicativeMap {u=(<*>)} }=
      (MkCompose (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
                      (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        ={ ?gtraversabledCompositionH_rhs2 }=
