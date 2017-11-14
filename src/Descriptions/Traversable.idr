@@ -166,51 +166,67 @@ using (f: Type -> Type, g: Type -> Type)
      (MkCompose (pure (<*>) <*>
                    map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*>
                      map (gtraversed {ix} dR cstrsR kdesc cstrs i) (gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
+        ={ rewrite sym $ applicativeVFunctorCoherence {f} in Refl }=
+     (MkCompose (pure (<*>) <*>
+                   map {f} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*>
+                     map (gtraversed {ix} dR cstrsR kdesc cstrs i) (gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
+        ={ rewrite sym $ applicativeVFunctorCoherence {f=g} in Refl }=
+     (MkCompose (pure (<*>) <*>
+                   map {f} (map {f=g} zipD) (map i (h par)) <*>
+                     map (gtraversed {ix} dR cstrsR kdesc cstrs i) (gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        ={ cong {f=\z=> MkCompose $ pure (<*>) <*>
-                                     map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*>
+                                     map {f} (map {f=g} zipD) (map i (h par)) <*>
                                        z (gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
           applicativeMap }=
      (MkCompose (pure (<*>) <*>
-                   map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)) <*>
+                   map {f} (map {f=g} zipD) (map i (h par)) <*>
                      (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        ={ cong {f=\z=> MkCompose $ (<*>) {f} {b = g (x : c ** Synthesize (PDescToDesc $ PUnfold kdesc c) (Data $ PDescToDesc $ PUnfold dR c) ix)}
-                                      (z $ map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))
+                                      (z $ map {f} (map {f=g} zipD) (map i (h par)))
                                       (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)} $
           sym $ applicativeMap {u=(<*>)} }=
-     (MkCompose (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
+     (MkCompose (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par))) <*>
                    (pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest)))
        ={ cong {f=MkCompose} $
-           sym $ applicativeCompose {u=map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))}
+           sym $ applicativeCompose {u=map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))}
                                     {v=pure (gtraversed {ix} dR cstrsR kdesc cstrs i)}
                                     {w=gtraversed {ix} dR cstrsR kdesc cstrs h rest} }=
      (MkCompose (pure (.) <*>
-                   map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
+                   map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par))) <*>
                      pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
-       ={ cong {f=\z=> MkCompose $ z (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*>
+       ={ cong {f=\z=> MkCompose $ z (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))) <*>
                                      pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
           sym $ applicativeMap {u=(.)} }=
-     (MkCompose (map (.) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*>
+     (MkCompose (map (.) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))) <*>
                      pure (gtraversed {ix} dR cstrsR kdesc cstrs i) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
        ={ cong {f=\z=> MkCompose $ z <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
-          applicativeInterchange {u=map (.) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))))}
+          applicativeInterchange {u=map (.) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par))))}
                                  {y=gtraversed {ix} dR cstrsR kdesc cstrs i} }=
      (MkCompose (pure (\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) <*>
-                   map (.) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*>
+                   map (.) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))) <*>
                      gtraversed {ix} dR cstrsR kdesc cstrs h rest))
-       ={ cong {f=\z=> MkCompose $ z (map (.) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))))) <*>
+       ={ cong {f=\z=> MkCompose $ z (map (.) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par))))) <*>
                                     gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
           sym $ applicativeMap {u=\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i} }=
-     (MkCompose (map (\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) (map (.) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))))) <*>
+     (MkCompose (map (\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) (map (.) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par))))) <*>
                      gtraversed {ix} dR cstrsR kdesc cstrs h rest))
-       ={ cong {f=\z=> MkCompose $ z (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*>
+       ={ cong {f=\z=> MkCompose $ z (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))) <*>
                                      gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
           sym $ mapCompose {g=\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i} {h=(.)} }=
-     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.)) (map {f} (<*>) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par)))) <*>
+     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.)) (map {f} (<*>) (map {f} (map {f=g} zipD) (map i (h par)))) <*>
                      gtraversed {ix} dR cstrsR kdesc cstrs h rest))
-       ={ cong {f=\z=> MkCompose $ z (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
+       ={ cong {f=\z=> MkCompose $ z (map {f} (map {f=g} zipD) (map i (h par))) <*>
                                      gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
           sym $ mapCompose {g=(\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.)} {h=(<*>)} }=
-     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>)) (map {f} @{ap2fun {f} $ vap2ap {f} af} (map {f=g} @{ap2fun {f=g} $ vap2ap {f=g} ag} zipD) (map i (h par))) <*>
+     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>)) (map {f} (map {f=g} zipD) (map i (h par))) <*>
+                     gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+       ={ cong {f=\z=> MkCompose $ z (map i (h par)) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
+          sym $ mapCompose {g=(\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>)} {h=map {f=g} zipD} }=
+     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>) . (map {f=g} zipD)) (map i (h par)) <*>
+                     gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+       ={ cong {f=\z=> MkCompose $ z (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest} $
+          sym $ mapCompose {g=(\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>) . (map {f=g} zipD)} {h=i} }=
+     (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>) . (map {f=g} zipD) . i) (h par) <*>
                      gtraversed {ix} dR cstrsR kdesc cstrs h rest))
        ={ ?gtraversabledCompositionH_rhs2 }=
      (MkCompose (pure (.) <*> pure (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) <*> map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
