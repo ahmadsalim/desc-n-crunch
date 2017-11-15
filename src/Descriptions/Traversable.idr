@@ -228,6 +228,9 @@ using (f: Type -> Type, g: Type -> Type)
           sym $ mapCompose {g=(\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>) . (map {f=g} zipD)} {h=i} }=
      (MkCompose (map ((\g => g $ gtraversed {ix} dR cstrsR kdesc cstrs i) . (.) . (<*>) . (map {f=g} zipD) . i) (h par) <*>
                      gtraversed {ix} dR cstrsR kdesc cstrs h rest))
+       ={ Refl }=
+     (MkCompose (map (\p, r => map {f=g} zipD (i p) <*> gtraversed {ix} dR cstrsR kdesc cstrs i r) (h par) <*>
+                     gtraversed {ix} dR cstrsR kdesc cstrs h rest))
        ={ ?gtraversabledCompositionH_rhs2 }=
      (MkCompose (pure (.) <*> pure (gtraversed {ix} dR cstrsR (PPar FZ kdesc) cstrs i) <*> map {f} @{ap2fun {f} $ vap2ap {f} af} zipD (h par) <*> gtraversed {ix} dR cstrsR kdesc cstrs h rest))
        ={ cong {f = MkCompose} applicativeCompose }=
