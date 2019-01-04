@@ -18,18 +18,18 @@ NilTag = %runElab search
 ConsTag : Tag `{Vect.(::)} VecCtors
 ConsTag = %runElab search
 
-VecDesc : (A : Type) -> TaggedDesc VecCtors Nat
+VecDesc : (f : Type) -> TaggedDesc VecCtors Nat
 VecDesc _ _  Z        = Ret Z
-VecDesc A _ (S  Z)    = Arg Nat (\n => Arg A (\a => Rec n (Ret (S n))))
+VecDesc f _ (S  Z)    = Arg Nat (\n => Arg f (\a => Rec n (Ret (S n))))
 VecDesc _ _ (S (S k)) = absurd k
 
-Vec : (A : Type) -> Nat -> Type
-Vec A n = TaggedData (VecDesc A) n
+Vec : (f : Type) -> Nat -> Type
+Vec f n = TaggedData (VecDesc f) n
 
-Nil : {A: Type} -> Vec A Z
+Nil : {f: Type} -> Vec f Z
 Nil = Con (`{Vect.Nil} ** Z ** Refl)
 
-Cons : {A: Type} -> {n: Nat} -> A -> Vec A n -> Vec A (S n)
+Cons : {f: Type} -> {n: Nat} -> f -> Vec f n -> Vec f (S n)
 Cons {n} x xs = Con (`{Vect.(::)} ** S Z ** n ** x ** xs ** Refl)
 
 exampleVec : Vec String 2

@@ -14,8 +14,8 @@ mutual
                     -> (d: Desc Ix) -> (cstrs: Constraints SEq d)
                     -> {ix: Ix} -> (X, Y: Synthesize d (TaggedData dR) ix) -> Bool
   geqd _ _ (Ret _) _ Refl Refl = True
-  geqd dR cstrsR (Arg A kdesc) (eqa, eqr) (a1 ** r1) (a2 ** r2) with (choose ((==) a1 a2))
-    geqd dR cstrsR (Arg A kdesc) (eqa, eqr) (a1 ** r1) (a2 ** r2) | Left l with (eqReflective @{eqa} l)
+  geqd dR cstrsR (Arg f kdesc) (eqa, eqr) (a1 ** r1) (a2 ** r2) with (choose ((==) a1 a2))
+    geqd dR cstrsR (Arg f kdesc) (eqa, eqr) (a1 ** r1) (a2 ** r2) | Left l with (eqReflective @{eqa} l)
       geqd dR cstrsR (Arg _ kdesc) (_, eqr) (a ** r1) (a ** r2) | Left _ | Refl = assert_total $ geqd dR cstrsR (kdesc a) (eqr a) r1 r2
     geqd _  _            _             _          _          _          | Right _ = False
   geqd dR cstrsR (Rec _ kdesc) cstrs (x1 ** r1) (x2 ** r2) = assert_total $ geq dR cstrsR x1 x2 && geqd dR cstrsR kdesc cstrs r1 r2
@@ -77,8 +77,8 @@ mutual
 geqSymmetric : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (cstrs: TaggedConstraints SEq d)
                           -> {ix: Ix} -> (X, Y: TaggedData d ix) -> So (geq d cstrs Y X)
                           -> So (geq d cstrs X Y)
-geqSymmetric d cstrs X Y soeq with (geqReflective d cstrs Y X soeq)
-  geqSymmetric d cstrs X X _ | Refl = geqReflexive d cstrs X
+geqSymmetric d cstrs f g soeq with (geqReflective d cstrs g f soeq)
+  geqSymmetric d cstrs f f _ | Refl = geqReflexive d cstrs f
 
 geqTransitive : {e, Ix: _} -> (d: TaggedDesc e Ix) -> (cstrs: TaggedConstraints SEq d)
                            -> {ix: Ix} -> (X, Y, Z: TaggedData d ix)

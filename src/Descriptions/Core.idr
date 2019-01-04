@@ -75,7 +75,7 @@ switch {e = _ :: _} (_ :: cs) (S t) = switch cs t
 ||| @ e the constructors of the datatype
 ||| @ Ix the index set
 TaggedDesc : (e: CtorEnum) -> (Ix: Type) -> Type
-TaggedDesc e Ix = (l: CtorLabel) -> Tag l e -> Desc Ix
+TaggedDesc e ix = (l: CtorLabel) -> Tag l e -> Desc ix
 
 ||| We can represent a datatype as a single constructor, where the
 ||| first argument selects which constructor we have, and uses that to
@@ -95,11 +95,11 @@ Untag {e} d = Arg CtorLabel (\l => Arg (Tag l e) (\t => d l t))
 ||| The call will almost always look like `Synthesize d (Data d)`.
 |||
 ||| @ d the description
-||| @ X the translated description, to "tie the recursive knot"
-Synthesize : {Ix: _} -> (d : Desc Ix) -> (X : Ix -> Type) -> (Ix -> Type)
-Synthesize (Ret ix)       X jx = ix ~=~ jx
-Synthesize (Arg A kdesc)  X jx = (a: A ** Synthesize (kdesc a) X jx)
-Synthesize (Rec ix kdesc) X jx = (x: X ix ** Synthesize kdesc X jx)
+||| @ f the translated description, to "tie the recursive knot"
+Synthesize : {Ix: _} -> (d : Desc Ix) -> (f : Ix -> Type) -> (Ix -> Type)
+Synthesize (Ret ix)       f jx = ix ~=~ jx
+Synthesize (Arg g kdesc)  f jx = (a: g ** Synthesize (kdesc a) f jx)
+Synthesize (Rec ix kdesc) f jx = (x: f ix ** Synthesize kdesc f jx)
 
 ||| Translated descriptions, used mutually with `Synthesize`.
 |||
@@ -131,18 +131,18 @@ data PDesc : (n : Nat) -> (Ix : Type) -> Type where
 ||| Use a particular parameter type for a parameterized family description.
 PUnfold : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
 PUnfold (PRet ix)             = \_ => PRet ix
-PUnfold (PArg A kdesc)        = \B => PArg A (\a : A => PUnfold (kdesc a) B)
+PUnfold (PArg a kdesc)        = \B => PArg a (\x : a => PUnfold (kdesc x) B)
 PUnfold (PPar  FZ    kdesc)   = \B => PArg B (\_ => PUnfold kdesc B)
 PUnfold (PPar (FS k) kdesc)   = \B => PPar k (PUnfold kdesc B)
-PUnfold (PMap F  FZ    kdesc) = \B => PArg (F B) (\_ => PUnfold kdesc B)
-PUnfold (PMap F (FS k) kdesc) = \B => PMap F k (PUnfold kdesc B)
+PUnfold (PMap f  FZ    kdesc) = \B => PArg (f B) (\_ => PUnfold kdesc B)
+PUnfold (PMap f (FS k) kdesc) = \B => PMap f k (PUnfold kdesc B)
 PUnfold (PRec ix kdesc)       = \B => PRec ix (PUnfold kdesc B)
 
 ||| When all parameters in a PDesc have been filled out, it can be
 ||| represented as an ordinary `Desc`.
 PDescToDesc : {Ix : Type} -> PDesc Z Ix -> Desc Ix
 PDescToDesc (PRet ix)       = Ret ix
-PDescToDesc (PArg A kdesc)  = Arg A (\a => PDescToDesc (kdesc a))
+PDescToDesc (PArg f kdesc)  = Arg f (\a => PDescToDesc (kdesc a))
 PDescToDesc (PPar k _)      = absurd k
 PDescToDesc (PMap _ k _)    = absurd k
 PDescToDesc (PRec ix kdesc) = Rec ix (PDescToDesc kdesc)
@@ -163,7 +163,7 @@ PData {n = Z}   x = Data (PDescToDesc x)
 PData {n = S _} x = \a => PData (PUnfold x a)
 
 PTaggedDesc : (e: CtorEnum) -> (n : Nat) -> (Ix : Type) -> Type
-PTaggedDesc e n Ix = (l : CtorLabel) -> Tag l e -> PDesc n Ix
+PTaggedDesc e n ix = (l : CtorLabel) -> Tag l e -> PDesc n ix
 
 PUntag : {e, n, Ix : _} -> PTaggedDesc e n Ix -> PDesc n Ix
 PUntag {e} d = PArg CtorLabel (\l => PArg (Tag l e) (\t => d l t))
@@ -177,18 +177,18 @@ PTaggedData d = PData (PUntag d)
 
 Constraints : {Ix: _} -> (Interface: Type -> Type) -> (d: Desc Ix) -> Type
 Constraints _         (Ret _)       = Unit
-Constraints Interface (Arg A kdesc) = (Interface A, (a: A) -> Constraints Interface (kdesc a))
-Constraints Interface (Rec _ kdesc) = Constraints Interface kdesc
+Constraints interfaceTy (Arg f kdesc) = (interfaceTy f, (a: f) -> Constraints interfaceTy (kdesc a))
+Constraints interfaceTy (Rec _ kdesc) = Constraints interfaceTy kdesc
 
-TaggedConstraints : {e, Ix: _} -> (Interface: Type -> Type) -> (td: TaggedDesc e Ix) -> Type
-TaggedConstraints {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> Constraints Interface (td l t)
+TaggedConstraints : {e, Ix: _} -> (interfaceTy: Type -> Type) -> (td: TaggedDesc e Ix) -> Type
+TaggedConstraints {e} interfaceTy td = (l : CtorLabel) -> (t : Tag l e) -> Constraints interfaceTy (td l t)
 
-PConstraints1 : {Ix: _} -> (Interface : (Type -> Type) -> Type) -> (d: PDesc (S Z) Ix) -> Type
+PConstraints1 : {Ix: _} -> (interfaceTy : (Type -> Type) -> Type) -> (d: PDesc (S Z) Ix) -> Type
 PConstraints1 _         (PRet _)         = ()
-PConstraints1 Interface (PArg A kdesc)   = (a : A) -> PConstraints1 Interface (kdesc a)
-PConstraints1 Interface (PPar _ kdesc)   = PConstraints1 Interface kdesc
-PConstraints1 Interface (PMap f _ kdesc) = (Interface f, PConstraints1 Interface kdesc)
-PConstraints1 Interface (PRec _ kdesc)   = PConstraints1 Interface kdesc
+PConstraints1 interfaceTy (PArg f kdesc)   = (a : f) -> PConstraints1 interfaceTy (kdesc a)
+PConstraints1 interfaceTy (PPar _ kdesc)   = PConstraints1 interfaceTy kdesc
+PConstraints1 interfaceTy (PMap f _ kdesc) = (interfaceTy f, PConstraints1 interfaceTy kdesc)
+PConstraints1 interfaceTy (PRec _ kdesc)   = PConstraints1 interfaceTy kdesc
 
-PTaggedConstraints1 : {e, Ix: _} -> (Interface : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) Ix) -> Type
-PTaggedConstraints1 {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 Interface (td l t)
+PTaggedConstraints1 : {e, Ix: _} -> (interfaceTy : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) Ix) -> Type
+PTaggedConstraints1 {e} interfaceTy td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 interfaceTy (td l t)
