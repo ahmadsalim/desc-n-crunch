@@ -105,7 +105,7 @@ mkDesc : TTName -> List TTName -> List TyConArg -> (TTName, List CtorArg, Raw) -
 mkDesc tyn paramsSoFar tcArgs (cn, [], cRes) =
   do indices <- getIndices tyn tcArgs cRes
      pure `(PRet {n=~(quote (paramCount tcArgs))}
-                 {Ix=~(prod (map snd indices))}
+                 {ixty=~(prod (map snd indices))}
                   ~(prodElem indices))
 mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
      case cArg of
@@ -115,7 +115,7 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
             let n = paramCount tcArgs
             i <- mkFin which n
             indices <- getIndices tyn tcArgs cRes
-            pure `(PPar {n=~(quote n)} {Ix=~(prod (map snd indices))} ~rest)
+            pure `(PPar {n=~(quote n)} {ixty=~(prod (map snd indices))} ~rest)
        CtorField arg =>
          -- A field can be either a transformed parameter, a recursive
          -- instantiation, or an ordinary argument.
@@ -130,7 +130,7 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
                     rest <- mkDesc tyn paramsSoFar tcArgs (cn, cArgs, cRes)
 
                     pure `(PRec {n=~(quote n)}
-                                {Ix=~(prod (map snd resIndices))}
+                                {ixty=~(prod (map snd resIndices))}
                                 ~(prodElem recIndices)
                                 ~rest)
                else -- normal arg
@@ -138,7 +138,7 @@ mkDesc tyn paramsSoFar tcArgs (cn, cArg::cArgs, cRes) =
                     let n = paramCount tcArgs
                     rest <- mkDesc tyn paramsSoFar tcArgs (cn, cArgs, cRes)
                     pure `(PArg {n=~(quote n)}
-                                {Ix=~(prod (map snd indices))}
+                                {ixty=~(prod (map snd indices))}
                                 ~(type arg)
                                 ~(RBind (name arg)
                                         (Lam (type arg))

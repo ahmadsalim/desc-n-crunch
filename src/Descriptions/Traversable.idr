@@ -119,10 +119,10 @@ using (f: Type -> Type, g: Type -> Type)
        replace {P = \r => MkCompose (pure {f} (pure {f=g} {a=(ix=ix)} Refl)) = MkCompose (r (pure Refl))} (sym prf) $
        replace {P = \r => MkCompose (pure {f} (pure {f=g} {a=(ix=ix)} Refl)) = MkCompose r} (sym $ applicativeHomomorphism {f} {g = gtraversed dR cstrsR (PRet ix) cstrs i} {x = Refl}) $
        Refl
-   gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) with (gtraversabledCompositionH dR cstrsR (kdesc arg) (cstrs arg) h i rest)
-     gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg A kdesc) cstrs h i (arg ** rest) | prf =
+   gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg a kdesc) cstrs h i (arg ** rest) with (gtraversabledCompositionH dR cstrsR (kdesc arg) (cstrs arg) h i rest)
+     gtraversabledCompositionH {c} {f} {g} {ix} dR cstrsR (PArg a kdesc) cstrs h i (arg ** rest) | prf =
       replace {P = \r => (MkCompose {f} {g} (pure (pure (MkDPair {P = \arg => PSynthesize (kdesc arg) c (PData dR c) ix } arg)))) <*> r =
-                          MkCompose (map {f} (gtraversed {g} dR cstrsR (PArg A kdesc) cstrs i)
+                          MkCompose (map {f} (gtraversed {g} dR cstrsR (PArg a kdesc) cstrs i)
                                        (pure (MkDPair arg) <*> (gtraversed dR cstrsR (kdesc arg) (cstrs arg) h rest)))} (sym prf) $
         (MkCompose {f} {g} $ pure (<*>) <*>
                                pure (pure (MkDPair arg)) <*>
@@ -145,16 +145,16 @@ using (f: Type -> Type, g: Type -> Type)
         (MkCompose {f} {g} $ map (((pure (MkDPair arg)) <*>) . gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) i)
                                (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
           ={ Refl }=
-        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i . MkDPair arg)
+        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg a kdesc) cstrs i . MkDPair arg)
                                (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
           ={ cong {f = MkCompose} $
              fundet mapCompose (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest) }=
-        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
+        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg a kdesc) cstrs i)
                                (map (MkDPair arg) (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest)))
-          ={ cong {f = \r => MkCompose $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
+          ={ cong {f = \r => MkCompose $ map (gtraversed {ix} dR cstrsR (PArg a kdesc) cstrs i)
                                             (r (gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest)) }
              applicativeMap }=
-        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg A kdesc) cstrs i)
+        (MkCompose {f} {g} $ map (gtraversed {ix} dR cstrsR (PArg a kdesc) cstrs i)
                                (pure (MkDPair arg) <*> gtraversed {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))
           QED
    gtraversabledCompositionH {f} {g} {c} @{af} @{ag} {ix} dR cstrsR (PPar FZ kdesc) cstrs h i (par ** rest) =
@@ -271,7 +271,7 @@ using (f: Type -> Type, g: Type -> Type)
                                              -> transformA {f} {g} (gtraversed dR cstrsR d cstrs h X) =
                                                   gtraversed {g} dR cstrsR d cstrs (transformA {f} {g} . h) X
     gtraversabledNaturalityH {f} {g} _ _ (PRet ix) _ _ Refl = transformAPure {f} {g} {a=(ix=ix)} {x=Refl}
-    gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PArg A kdesc) cstrs h (arg ** rest) =
+    gtraversabledNaturalityH {f} {g} @{at} {ix} dR cstrsR (PArg a kdesc) cstrs h (arg ** rest) =
       (transformA {f} {g} @{at} (pure {f} (MkDPair arg) <*> gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest))
         ={ transformAAp {f} {g} {x=pure {f} @{vapt2apF at} (MkDPair arg)} {y=gtraversed @{vapt2apF at} dR cstrsR (kdesc arg) (cstrs arg) h rest} }=
       (transformA {f} {g} @{at} (pure {f} (MkDPair arg)) <*> transformA {f} {g} @{at} (gtraversed @{vapt2apF at} {ix} dR cstrsR (kdesc arg) (cstrs arg) h rest))

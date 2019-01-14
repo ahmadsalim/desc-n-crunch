@@ -15,21 +15,21 @@ import public Helper
 
 ||| A description of an indexed family of types.
 |||
-||| @ Ix the type over which the family is indexed
-data Desc : (Ix: Type) -> Type where
+||| @ ixty the type over which the family is indexed
+data Desc : (ixty: Type) -> Type where
 
   ||| The final constructor description, instantiating the family at a
   ||| particular index.
-  Ret : {Ix: _} -> (ix: Ix)  -> Desc Ix
+  Ret : {ixty: _} -> (ix: ixty)  -> Desc ixty
 
   ||| An argument to the constructor.
   |||
   ||| @ A the constructor field type
   ||| @ kdesc a further description, dependent on an argument of type `A`
-  Arg : {Ix: _} -> (A: Type) -> (kdesc: A -> Desc Ix) -> Desc Ix
+  Arg : {ixty: _} -> (A: Type) -> (kdesc: A -> Desc ixty) -> Desc ixty
 
   ||| A recursive instantiation of the family at some particular index.
-  Rec : {Ix: _} -> (ix: Ix)  -> (kdesc: Desc Ix) -> Desc Ix
+  Rec : {ixty: _} -> (ix: ixty)  -> (kdesc: Desc ixty) -> Desc ixty
 
 %name Desc d, desc
 
@@ -73,21 +73,21 @@ switch {e = _ :: _} (_ :: cs) (S t) = switch cs t
 ||| ```
 |||
 ||| @ e the constructors of the datatype
-||| @ Ix the index set
-TaggedDesc : (e: CtorEnum) -> (Ix: Type) -> Type
-TaggedDesc e Ix = (l: CtorLabel) -> Tag l e -> Desc Ix
+||| @ ixty the index set
+TaggedDesc : (e: CtorEnum) -> (ixty: Type) -> Type
+TaggedDesc e ixty = (l: CtorLabel) -> Tag l e -> Desc ixty
 
 ||| We can represent a datatype as a single constructor, where the
 ||| first argument selects which constructor we have, and uses that to
 ||| compute the remaining arguments.
 |||
 ||| ```idris example
-||| Untag {e=["::", "Nil"]} {Ix=()} (\l, t => Ret ())
+||| Untag {e=["::", "Nil"]} {ixty=()} (\l, t => Ret ())
 ||| ```
 |||
 ||| @ e the set of constructor labels
 ||| @ d the tagged description
-Untag : {e, Ix: _} -> (d : TaggedDesc e Ix) -> Desc Ix
+Untag : {e, ixty: _} -> (d : TaggedDesc e ixty) -> Desc ixty
 Untag {e} d = Arg CtorLabel (\l => Arg (Tag l e) (\t => d l t))
 
 ||| Interpret a constructor description as a datatype.
@@ -95,11 +95,11 @@ Untag {e} d = Arg CtorLabel (\l => Arg (Tag l e) (\t => d l t))
 ||| The call will almost always look like `Synthesize d (Data d)`.
 |||
 ||| @ d the description
-||| @ X the translated description, to "tie the recursive knot"
-Synthesize : {Ix: _} -> (d : Desc Ix) -> (X : Ix -> Type) -> (Ix -> Type)
-Synthesize (Ret ix)       X jx = ix ~=~ jx
-Synthesize (Arg A kdesc)  X jx = (a: A ** Synthesize (kdesc a) X jx)
-Synthesize (Rec ix kdesc) X jx = (x: X ix ** Synthesize kdesc X jx)
+||| @ xty the translated description, to "tie the recursive knot"
+Synthesize : {ixty: _} -> (d : Desc ixty) -> (xty : ixty -> Type) -> (ixty -> Type)
+Synthesize (Ret ix)       xty jx = ix ~=~ jx
+Synthesize (Arg g kdesc)  xty jx = (a: g ** Synthesize (kdesc a) xty jx)
+Synthesize (Rec ix kdesc) xty jx = (x: xty ix ** Synthesize kdesc xty jx)
 
 ||| Translated descriptions, used mutually with `Synthesize`.
 |||
@@ -107,48 +107,48 @@ Synthesize (Rec ix kdesc) X jx = (x: X ix ** Synthesize kdesc X jx)
 ||| let strVectDesc = Arg Bool (\b => if b then Arg String (\s => Arg Nat (\n => Rec n (Ret (S n)))) else Ret Z)
 ||| in Synthesize strVectDesc (Data strVectDesc)
 ||| ```
-||| @ d a description of a family indexed over `Ix`
+||| @ d a description of a family indexed over `ixty`
 ||| @ ix the particular index at which the datatype is instantiated
-data Data : {Ix: Type} -> (d : Desc Ix) -> (ix : Ix) -> Type where
-  Con : {Ix: _} -> {d : Desc Ix} -> {ix : Ix} -> Synthesize d (Data d) ix -> Data d ix
+data Data : {ixty: Type} -> (d : Desc ixty) -> (ix : ixty) -> Type where
+  Con : {ixty: _} -> {d : Desc ixty} -> {ix : ixty} -> Synthesize d (Data d) ix -> Data d ix
 
 ||| Descriptions of indexed families with parameters.
 |||
 ||| @ n the number of parameters to the family
-||| @ Ix the index set
-data PDesc : (n : Nat) -> (Ix : Type) -> Type where
+||| @ ixty the index set
+data PDesc : (n : Nat) -> (ixty : Type) -> Type where
   ||| Instantiate at a particular element of the index set. See `Ret`.
-  PRet  : {n,Ix: _} -> (ix: Ix)  -> PDesc n Ix
+  PRet  : {n,ixty: _} -> (ix: ixty)  -> PDesc n ixty
   ||| Take an argument. See `Arg`.
-  PArg  : {n,Ix: _} -> (A: Type) -> (kdesc: A -> PDesc n Ix) -> PDesc n Ix
+  PArg  : {n,ixty: _} -> (A: Type) -> (kdesc: A -> PDesc n ixty) -> PDesc n ixty
   ||| Select a particular parameter.
-  PPar  : {n,Ix: _} -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
+  PPar  : {n,ixty: _} -> (k : Fin n) -> (kdesc: PDesc n ixty) -> PDesc n ixty
   ||| Compute an argument type from one of the parameter types.
-  PMap  : {n,Ix: _} -> (f : Type -> Type) -> (k : Fin n) -> (kdesc: PDesc n Ix) -> PDesc n Ix
+  PMap  : {n,ixty: _} -> (f : Type -> Type) -> (k : Fin n) -> (kdesc: PDesc n ixty) -> PDesc n ixty
   ||| Recur. See `Rec`.
-  PRec  : {n,Ix: _} -> (ix: Ix)  -> (kdesc: PDesc n Ix) -> PDesc n Ix
+  PRec  : {n,ixty: _} -> (ix: ixty)  -> (kdesc: PDesc n ixty) -> PDesc n ixty
 
 ||| Use a particular parameter type for a parameterized family description.
-PUnfold : {n, Ix: _} -> PDesc (S n) Ix -> Type -> PDesc n Ix
-PUnfold (PRet ix)             = \_ => PRet ix
-PUnfold (PArg A kdesc)        = \B => PArg A (\a : A => PUnfold (kdesc a) B)
-PUnfold (PPar  FZ    kdesc)   = \B => PArg B (\_ => PUnfold kdesc B)
-PUnfold (PPar (FS k) kdesc)   = \B => PPar k (PUnfold kdesc B)
-PUnfold (PMap F  FZ    kdesc) = \B => PArg (F B) (\_ => PUnfold kdesc B)
-PUnfold (PMap F (FS k) kdesc) = \B => PMap F k (PUnfold kdesc B)
-PUnfold (PRec ix kdesc)       = \B => PRec ix (PUnfold kdesc B)
+PUnfold : {n, ixty: _} -> PDesc (S n) ixty -> Type -> PDesc n ixty
+PUnfold (PRet ix)               = \_ => PRet ix
+PUnfold (PArg aty kdesc)        = \bty => PArg aty (\a : aty => PUnfold (kdesc a) bty)
+PUnfold (PPar  FZ    kdesc)     = \bty => PArg bty (\_ => PUnfold kdesc bty)
+PUnfold (PPar (FS k) kdesc)     = \bty => PPar k (PUnfold kdesc bty)
+PUnfold (PMap fty  FZ    kdesc) = \bty => PArg (fty bty) (\_ => PUnfold kdesc bty)
+PUnfold (PMap fty (FS k) kdesc) = \bty => PMap fty k (PUnfold kdesc bty)
+PUnfold (PRec ix kdesc)         = \bty => PRec ix (PUnfold kdesc bty)
 
 ||| When all parameters in a PDesc have been filled out, it can be
 ||| represented as an ordinary `Desc`.
-PDescToDesc : {Ix : Type} -> PDesc Z Ix -> Desc Ix
-PDescToDesc (PRet ix)       = Ret ix
-PDescToDesc (PArg A kdesc)  = Arg A (\a => PDescToDesc (kdesc a))
-PDescToDesc (PPar k _)      = absurd k
-PDescToDesc (PMap _ k _)    = absurd k
-PDescToDesc (PRec ix kdesc) = Rec ix (PDescToDesc kdesc)
+PDescToDesc : {ixty : Type} -> PDesc Z ixty -> Desc ixty
+PDescToDesc (PRet ix)         = Ret ix
+PDescToDesc (PArg aty kdesc)  = Arg aty (\a => PDescToDesc (kdesc a))
+PDescToDesc (PPar k _)        = absurd k
+PDescToDesc (PMap _ k _)      = absurd k
+PDescToDesc (PRec ix kdesc)   = Rec ix (PDescToDesc kdesc)
 
 ||| A version of `Synthesize` for parameterized families.
-PSynthesize : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) ((Ix -> Type) -> (Ix -> Type))
+PSynthesize : {n, ixty: _} -> PDesc n ixty -> FunTy (replicate n Type) ((ixty -> Type) -> (ixty -> Type))
 PSynthesize {n = Z}   x = Synthesize (PDescToDesc x)
 PSynthesize {n = S _} x = \a => PSynthesize (PUnfold x a)
 
@@ -158,37 +158,37 @@ PSynthesize {n = S _} x = \a => PSynthesize (PUnfold x a)
 ||| there are n parameters, the result is an n-argument function that
 ||| will result in something equivalent to `Data` when the parameters
 ||| are instantiated.
-PData : {n, Ix: _} -> PDesc n Ix -> FunTy (replicate n Type) (Ix -> Type)
+PData : {n, ixty: _} -> PDesc n ixty -> FunTy (replicate n Type) (ixty -> Type)
 PData {n = Z}   x = Data (PDescToDesc x)
 PData {n = S _} x = \a => PData (PUnfold x a)
 
-PTaggedDesc : (e: CtorEnum) -> (n : Nat) -> (Ix : Type) -> Type
-PTaggedDesc e n Ix = (l : CtorLabel) -> Tag l e -> PDesc n Ix
+PTaggedDesc : (e: CtorEnum) -> (n : Nat) -> (ixty : Type) -> Type
+PTaggedDesc e n ixty = (l : CtorLabel) -> Tag l e -> PDesc n ixty
 
-PUntag : {e, n, Ix : _} -> PTaggedDesc e n Ix -> PDesc n Ix
+PUntag : {e, n, ixty : _} -> PTaggedDesc e n ixty -> PDesc n ixty
 PUntag {e} d = PArg CtorLabel (\l => PArg (Tag l e) (\t => d l t))
 
 ||| A version of `Data` for tagged descriptions.
-TaggedData : {Ix: _} -> {e: CtorEnum} -> TaggedDesc e Ix -> (Ix -> Type)
+TaggedData : {ixty: _} -> {e: CtorEnum} -> TaggedDesc e ixty -> (ixty -> Type)
 TaggedData d = Data (Untag d)
 
-PTaggedData : {Ix,n: _} -> {e: CtorEnum} -> PTaggedDesc e n Ix -> FunTy (replicate n Type) (Ix -> Type)
+PTaggedData : {ixty,n: _} -> {e: CtorEnum} -> PTaggedDesc e n ixty -> FunTy (replicate n Type) (ixty -> Type)
 PTaggedData d = PData (PUntag d)
 
-Constraints : {Ix: _} -> (Interface: Type -> Type) -> (d: Desc Ix) -> Type
+Constraints : {ixty: _} -> (Interface: Type -> Type) -> (d: Desc ixty) -> Type
 Constraints _         (Ret _)       = Unit
-Constraints Interface (Arg A kdesc) = (Interface A, (a: A) -> Constraints Interface (kdesc a))
-Constraints Interface (Rec _ kdesc) = Constraints Interface kdesc
+Constraints interfaceTy (Arg f kdesc) = (interfaceTy f, (a: f) -> Constraints interfaceTy (kdesc a))
+Constraints interfaceTy (Rec _ kdesc) = Constraints interfaceTy kdesc
 
-TaggedConstraints : {e, Ix: _} -> (Interface: Type -> Type) -> (td: TaggedDesc e Ix) -> Type
-TaggedConstraints {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> Constraints Interface (td l t)
+TaggedConstraints : {e, ixty: _} -> (interfaceTy: Type -> Type) -> (td: TaggedDesc e ixty) -> Type
+TaggedConstraints {e} interfaceTy td = (l : CtorLabel) -> (t : Tag l e) -> Constraints interfaceTy (td l t)
 
-PConstraints1 : {Ix: _} -> (Interface : (Type -> Type) -> Type) -> (d: PDesc (S Z) Ix) -> Type
+PConstraints1 : {ixty: _} -> (interfaceTy : (Type -> Type) -> Type) -> (d: PDesc (S Z) ixty) -> Type
 PConstraints1 _         (PRet _)         = ()
-PConstraints1 Interface (PArg A kdesc)   = (a : A) -> PConstraints1 Interface (kdesc a)
-PConstraints1 Interface (PPar _ kdesc)   = PConstraints1 Interface kdesc
-PConstraints1 Interface (PMap f _ kdesc) = (Interface f, PConstraints1 Interface kdesc)
-PConstraints1 Interface (PRec _ kdesc)   = PConstraints1 Interface kdesc
+PConstraints1 interfaceTy (PArg f kdesc)   = (a : f) -> PConstraints1 interfaceTy (kdesc a)
+PConstraints1 interfaceTy (PPar _ kdesc)   = PConstraints1 interfaceTy kdesc
+PConstraints1 interfaceTy (PMap f _ kdesc) = (interfaceTy f, PConstraints1 interfaceTy kdesc)
+PConstraints1 interfaceTy (PRec _ kdesc)   = PConstraints1 interfaceTy kdesc
 
-PTaggedConstraints1 : {e, Ix: _} -> (Interface : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) Ix) -> Type
-PTaggedConstraints1 {e} Interface td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 Interface (td l t)
+PTaggedConstraints1 : {e, ixty: _} -> (interfaceTy : (Type -> Type) -> Type) -> (td: PTaggedDesc e (S Z) ixty) -> Type
+PTaggedConstraints1 {e} interfaceTy td = (l : CtorLabel) -> (t : Tag l e) -> PConstraints1 interfaceTy (td l t)
